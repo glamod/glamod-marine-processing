@@ -7,6 +7,10 @@ v7.0.1 (unpublished)
 --------------------
 Contributors to this version: Ludwig Lierhammer (:user:`ludwiglierhammer`)
 
+New features and enhancements
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+* add quality checks for both Wind speed and wind direction in level1e script (:issue:`20`, :pull:`22`)
+
 Breaking changes
 ^^^^^^^^^^^^^^^^
 * delete metadata suite, config suite and not-used scripts/modules (:issue:`14`, :pull:`16`)

@@ -57,7 +57,6 @@ settings:
 from __future__ import annotations
 
 import datetime
-import glob
 import logging
 import os
 import sys
@@ -67,7 +66,7 @@ from io import StringIO
 import numpy as np
 import pandas as pd
 import simplejson
-from _utilities import date_handler, script_setup
+from _utilities import FFS, date_handler, script_setup
 from cdm_reader_mapper import cdm_mapper as cdm
 from cdm_reader_mapper import mdf_reader, metmetpy
 from cdm_reader_mapper.common import pandas_TextParser_hdlr
@@ -76,24 +75,7 @@ from cdm_reader_mapper.operations import inspect, select
 reload(logging)  # This is to override potential previous config of logging
 
 
-FFS = "-"
-
-
 # FUNCTIONS -------------------------------------------------------------------
-def clean_L1a(L1a_id):
-    """Clean previous LEVEL1a files."""
-    L1a_prods = glob.glob(os.path.join(L1a_path, "*" + FFS + L1a_id + ".psv"))
-    L1a_ql = glob.glob(os.path.join(L1a_ql_path, L1a_id + ".json"))
-    L1a_excluded = glob.glob(os.path.join(L1a_excluded_path, L1a_id + FFS + "*.psv"))
-    L1a_invalid = glob.glob(os.path.join(L1a_invalid_path, L1a_id + FFS + "*.psv"))
-    for filename in L1a_prods + L1a_ql + L1a_excluded + L1a_invalid:
-        try:
-            logging.info(f"Removing previous file: {filename}")
-            os.remove(filename)
-        except Exception:
-            pass
-
-
 def write_out_junk(dataObj, filename):
     """Write to disk."""
     v = [dataObj] if not read_kwargs.get("chunksize") else dataObj
@@ -127,43 +109,18 @@ process_options = [
     "filter_reports_by",
     "cdm_map",
 ]
-params = script_setup(process_options, args)
+params = script_setup(process_options, args, "level1a", "level0")
 
 if not params.flag:
     logging.error("Error parsing initial configuration")
     sys.exit(1)
 
-release_path = os.path.join(params.data_path, params.release, params.dataset)
 correction_path = os.path.join(params.data_path, params.release, params.corrections)
 
-FFS = "-"
-L0_path = os.path.join(
-    params.data_path, "datasets", params.dataset, "level0", params.sid_dck
-)
-L1a_path = os.path.join(release_path, "level1a", params.sid_dck)
-L1a_ql_path = os.path.join(release_path, "level1a", "quicklooks", params.sid_dck)
-L1a_excluded_path = os.path.join(release_path, "level1a", "excluded", params.sid_dck)
-L1a_invalid_path = os.path.join(release_path, "level1a", "invalid", params.sid_dck)
-
-data_paths = [L0_path, L1a_path, L1a_ql_path, L1a_excluded_path, L1a_invalid_path]
-if any([not os.path.isdir(x) for x in data_paths]):
-    logging.error(
-        "Could not find data paths: {}".format(
-            ",".join([x for x in data_paths if not os.path.isdir(x)])
-        )
-    )
-    sys.exit(1)
-
-L0_filename = os.path.join(L0_path, params.filename)
+L0_filename = os.path.join(params.prev_level_path, params.filename)
 if not os.path.isfile(L0_filename):
-    logging.error(f"L0 file not found: {L0_filename}")
+    logging.error(f"Could not find data input file: {L0_filename}")
     sys.exit(1)
-
-release_id = FFS.join([params.release, params.update])
-L1a_id = FFS.join([str(params.year), str(params.month).zfill(2), release_id])
-
-# CLEAN PREVIOUS L1A PRODUCTS AND SIDE FILES ----------------------------------
-clean_L1a(L1a_id)
 
 # DO THE DATA PROCESSING ------------------------------------------------------
 data_model = params.data_model
@@ -340,7 +297,11 @@ if process:
 
     logging.info("Printing tables to psv files")
     cdm.cdm_to_ascii(
-        cdm_tables, log_level="DEBUG", out_dir=L1a_path, suffix=L1a_id, prefix=None
+        cdm_tables,
+        log_level="DEBUG",
+        out_dir=params.level_path,
+        suffix=params.fileID,
+        prefix=None,
     )
 
     for table in tables:
@@ -348,7 +309,7 @@ if process:
 
 io_dict["date processed"] = datetime.datetime.now()
 logging.info("Saving json quicklook")
-L1a_io_filename = os.path.join(L1a_ql_path, L1a_id + ".json")
+L1a_io_filename = os.path.join(params.level_ql_path, params.fileID + ".json")
 with open(L1a_io_filename, "w") as fileObj:
     simplejson.dump(
         {"-".join([params.year, params.month]): io_dict},
@@ -363,14 +324,19 @@ if hasattr(params, "filter_reports_by"):
     for k, v in data_excluded["data"].items():
         if inspect.get_length(data_excluded["data"][k]) > 0:
             excluded_filename = os.path.join(
-                L1a_excluded_path, L1a_id + FFS + "_".join(k.split(".")) + ".psv"
+                params.level_excluded_path,
+                params.fileID + FFS + "_".join(k.split(".")) + ".psv",
             )
             logging.info(f"Writing {k} excluded data to file {excluded_filename}")
             write_out_junk(v, excluded_filename)
 
 if inspect.get_length(data_invalid["data"]) > 0:
-    invalid_data_filename = os.path.join(L1a_invalid_path, L1a_id + FFS + "data.psv")
-    invalid_mask_filename = os.path.join(L1a_invalid_path, L1a_id + FFS + "mask.psv")
+    invalid_data_filename = os.path.join(
+        params.level_invalid_path, params.fileID + FFS + "data.psv"
+    )
+    invalid_mask_filename = os.path.join(
+        params.level_invalid_path, params.fileID + FFS + "mask.psv"
+    )
     logging.info(f"Writing invalid data to file {invalid_data_filename}")
     write_out_junk(data_invalid["data"], invalid_data_filename)
     logging.info(f"Writing invalid data mask to file {invalid_mask_filename}")

@@ -121,7 +121,6 @@ of the QC files relative to a set path (i.e. informing of the QC version)
 from __future__ import annotations
 
 import datetime
-import glob
 import logging
 import os
 import sys
@@ -130,7 +129,8 @@ from importlib import reload
 import numpy as np
 import pandas as pd
 import simplejson
-from _utilities import date_handler, script_setup
+from _qc import wind_qc
+from _utilities import FFS, date_handler, paths_exist, script_setup, table_to_csv
 from cdm_reader_mapper import cdm_mapper as cdm
 
 reload(logging)  # This is to override potential previous config of logging
@@ -231,7 +231,7 @@ def process_table(table_df, table_name):
         # Open table and reindex
         table_df = pd.DataFrame()
         table_df = cdm.read_tables(
-            prev_level_path, params.prev_fileID, cdm_subset=[table_name]
+            params.prev_level_path, params.prev_fileID, cdm_subset=[table_name]
         )
 
         if table_df is None or len(table_df) == 0:
@@ -287,32 +287,9 @@ def process_table(table_df, table_name):
 
     cdm_columns = cdm_tables.get(table_name).keys()
     odata_filename = os.path.join(
-        level_path, filename_field_sep.join([table_name, fileID]) + ".psv"
+        params.level_path, FFS.join([table_name, params.fileID]) + ".psv"
     )
-    table_df.to_csv(
-        odata_filename,
-        index=False,
-        sep=delimiter,
-        columns=cdm_columns,
-        header=header,
-        mode=wmode,
-        na_rep="null",
-    )
-
-
-# This is to remove files of a previous process on this same level file
-def clean_level(file_id):
-    """Clean level."""
-    level_prods = glob.glob(os.path.join(level_path, "*-" + file_id + ".psv"))
-    level_logs = glob.glob(os.path.join(level_log_path, file_id + ".*"))
-    level_ql = glob.glob(os.path.join(level_ql_path, "*" + file_id + "*.*"))
-    for filename in level_prods + level_ql + level_logs:
-        try:
-            logging.info(f"Removing previous file: {filename}")
-            os.remove(filename)
-        except Exception:
-            logging.warning(f"Could not remove previous file: {filename}")
-            pass
+    table_to_csv(table_df, odata_filename, columns=cdm_columns)
 
 
 # ------------------------------------------------------------------------------
@@ -363,13 +340,6 @@ qc_delimiter = ","
 # -----------------------------------------------------------------------------
 
 # Some other parameters -------------------------------------------------------
-filename_field_sep = "-"
-delimiter = "|"
-level = "level1e"
-level_prev = "level1d"
-header = True
-wmode = "w"
-
 cdm_tables = cdm.load_tables()
 obs_tables = [x for x in cdm_tables.keys() if x != "header"]
 
@@ -397,34 +367,12 @@ process_options = [
     "qc_first_date_avail",
     "qc_last_date_avail",
 ]
-params = script_setup(process_options, args)
+params = script_setup(process_options, args, "level1e", "level1d")
 
-release_path = os.path.join(params.data_path, params.release, params.dataset)
-release_id = filename_field_sep.join([params.release, params.update])
-fileID = filename_field_sep.join(
-    [str(params.year), str(params.month).zfill(2), release_id]
-)
-fileID_date = filename_field_sep.join([str(params.year), str(params.month)])
-if params.prev_fileID is None:
-    params.prev_fileID = fileID
-
-prev_level_path = os.path.join(release_path, level_prev, params.sid_dck)
-level_path = os.path.join(release_path, level, params.sid_dck)
-level_ql_path = os.path.join(release_path, level, "quicklooks", params.sid_dck)
-level_log_path = os.path.join(release_path, level, "log", params.sid_dck)
-
-# qc_path = os.path.join(release_path,'metoffice_qc','base')
 qc_path = os.path.join(params.data_path, params.release, "metoffice_qc", "base")
 
 # Check we have all the dirs!
-data_paths = [prev_level_path, level_path, level_ql_path, level_log_path, qc_path]
-if any([not os.path.isdir(x) for x in data_paths]):
-    logging.error(
-        "Could not find data paths: {}".format(
-            ",".join([x for x in data_paths if not os.path.isdir(x)])
-        )
-    )
-    sys.exit(1)
+paths_exist(qc_path)
 
 # Check we have QC files!
 logging.info(f"Using qc files in {qc_path}")
@@ -460,7 +408,9 @@ if not os.path.isfile(header_filename):
     sys.exit(1)
 
 header_df = pd.DataFrame()
-header_df = cdm.read_tables(prev_level_path, cdm_subset=["header"], na_values="null")
+header_df = cdm.read_tables(
+    params.prev_level_path, cdm_subset=["header"], na_values="null"
+)
 
 if len(header_df) == 0:
     logging.error("Empty or non-existing header table")
@@ -483,7 +433,6 @@ if len(tables_in) == 1:
 # DO THE DATA PROCESSING ------------------------------------------------------
 header_df.set_index("report_id", inplace=True, drop=False)
 qc_dict = {}
-clean_level(fileID)
 
 # 1. PROCESS QC FLAGS ---------------------------------------------------------
 # GET THE QC FILES WE NEED FOR THE CURRENT SET OF CDM TABLES
@@ -526,11 +475,33 @@ for table in obs_tables:
     flag = True if table in tables_in and qc_avail else False
     process_table(table, table)
 
+# 3 wind QC
+table_wd = cdm.read_tables(
+    params.level_path, params.fileID, cdm_subset=["observations-wd"]
+)
+table_ws = cdm.read_tables(
+    params.level_path, params.fileID, cdm_subset=["observations-ws"]
+)
+
+windQC = wind_qc(table_wd=table_wd, table_ws=table_ws)
+
+odata_filename_wd = os.path.join(
+    params.level_path, FFS.join(["observations-wd", params.fileID]) + ".psv"
+)
+cdm_columns = cdm_tables.get("observations-wd").keys()
+table_to_csv(windQC.wind_direction, odata_filename_wd, columns=cdm_columns)
+
+odata_filename_ws = os.path.join(
+    params.level_path, FFS.join(["observations-ws", params.fileID]) + ".psv"
+)
+cdm_columns = cdm_tables.get("observations-ws").keys()
+table_to_csv(windQC.wind_speed, odata_filename_ws, columns=cdm_columns)
+
 # CHECKOUT --------------------------------------------------------------------
 qc_dict["date processed"] = datetime.datetime.now()
 
 logging.info("Saving json quicklook")
-level_io_filename = os.path.join(level_ql_path, fileID + ".json")
+level_io_filename = os.path.join(params.level_ql_path, params.fileID + ".json")
 with open(level_io_filename, "w") as fileObj:
     simplejson.dump(
         {"-".join([params.year, params.month]): qc_dict},

@@ -106,7 +106,7 @@ from importlib import reload
 import numpy as np
 import pandas as pd
 import simplejson
-from _utilities import date_handler, script_setup
+from _utilities import FFS, date_handler, paths_exist, script_setup, table_to_csv
 from cdm_reader_mapper import cdm_mapper as cdm
 
 reload(logging)  # This is to override potential previous config of logging
@@ -153,7 +153,9 @@ def read_table_files(table):
     # table_df = cdm.read_tables(
     #    prev_level_path, fileID, cdm_subset=[table], na_values="null"
     # )
-    table_df = cdm.read_tables(prev_level_path, cdm_subset=[table], na_values="null")
+    table_df = cdm.read_tables(
+        params.prev_level_path, cdm_subset=[table], na_values="null"
+    )
     try:
         len(table_df)
     except Exception:
@@ -163,8 +165,8 @@ def read_table_files(table):
                 table
             )
         )
-    leak_pattern = FFS.join([table, fileID, "????" + FFS + "??.psv"])
-    leak_files = glob.glob(os.path.join(prev_level_path, leak_pattern))
+    leak_pattern = FFS.join([table, params.fileID, "????" + FFS + "??.psv"])
+    leak_files = glob.glob(os.path.join(params.prev_level_path, leak_pattern))
     leaks_in = 0
     if len(leak_files) > 0:
         for leak_file in leak_files:
@@ -172,7 +174,7 @@ def read_table_files(table):
             file_base = os.path.splitext(os.path.basename(leak_file))[0]
             fileIDi = "-".join(file_base.split("-")[-6:])
             table_dfi = cdm.read_tables(
-                prev_level_path, fileIDi, cdm_subset=[table], na_values="null"
+                params.prev_level_path, fileIDi, cdm_subset=[table], na_values="null"
             )
             if len(table_dfi) == 0:
                 logging.error(f"Could not read leak file or is empty {leak_file}")
@@ -194,7 +196,9 @@ def process_table(table_df, table_name):
             return
         table_df.set_index("report_id", inplace=True, drop=False)
 
-    odata_filename = os.path.join(level_path, FFS.join([table_name, fileID]) + ".psv")
+    odata_filename = os.path.join(
+        params.level_path, FFS.join([table_name, params.fileID]) + ".psv"
+    )
     cdm_columns = cdm_tables.get(table_name).keys()
     table_mask = mask_df.loc[table_df.index]
     if table_name == "header":
@@ -206,34 +210,11 @@ def process_table(table_df, table_name):
         )
 
     if len(table_df[table_mask["all"]]) > 0:
-        table_df[table_mask["all"]].to_csv(
-            odata_filename,
-            index=False,
-            sep=delimiter,
-            columns=cdm_columns,
-            header=header,
-            mode=wmode,
-            na_rep="null",
-        )
+        table_to_csv(table_df[table_mask["all"]], odata_filename, columns=cdm_columns)
     else:
         logging.warning(f"Table {table_name} is empty. No file will be produced")
 
     validation_dict[table_name]["total"] = len(table_df[table_mask["all"]])
-
-
-def clean_level(file_id):
-    """Clean level."""
-    level_prods = glob.glob(os.path.join(level_path, "*" + FFS + file_id + ".psv"))
-    level_ql = glob.glob(os.path.join(level_ql_path, file_id + ".json"))
-    level_invalid = glob.glob(
-        os.path.join(level_invalid_path, "*" + FFS + file_id + ".*")
-    )
-    for filename in level_prods + level_ql + level_invalid:
-        try:
-            logging.info(f"Removing previous file: {filename}")
-            os.remove(filename)
-        except Exception:
-            pass
 
 
 # MAIN ------------------------------------------------------------------------
@@ -252,53 +233,14 @@ else:
     logging.error("Need arguments to run!")
     sys.exit(1)
 
-params = script_setup([], args)
-
-FFS = "-"
-delimiter = "|"
-level = "level1c"
-level_prev = "level1b"
-header = True
-wmode = "w"
-
-release_path = os.path.join(params.data_path, params.release, params.dataset)
-release_id = FFS.join([params.release, params.update])
-fileID = FFS.join([str(params.year), str(params.month).zfill(2), release_id])
-fileID_date = FFS.join([str(params.year), str(params.month)])
-if params.prev_fileID is None:
-    params.prev_fileID = fileID
-
-prev_level_path = os.path.join(release_path, level_prev, params.sid_dck)
-level_path = os.path.join(release_path, level, params.sid_dck)
-level_ql_path = os.path.join(release_path, level, "quicklooks", params.sid_dck)
-level_invalid_path = os.path.join(release_path, level, "invalid", params.sid_dck)
+params = script_setup([], args, "level1c", "level1b")
 
 id_validation_path = os.path.join(
     params.data_path, params.release, "NOC_ANC_INFO", "json_files"
 )
 
-data_paths = [
-    prev_level_path,
-    level_path,
-    level_ql_path,
-    level_invalid_path,
-    id_validation_path,
-]
-if any([not os.path.isdir(x) for x in data_paths]):
-    logging.error(
-        "Could not find data paths: {}".format(
-            ",".join([x for x in data_paths if not os.path.isdir(x)])
-        )
-    )
-    sys.exit(1)
+paths_exist([id_validation_path, params.level_invalid_path])
 
-prev_level_filename = params.filename
-if len(glob.glob(prev_level_filename)) == 0:
-    logging.error(f"L1b header files not found: {prev_level_filename}")
-    sys.exit(1)
-
-# Clean previous L1c products and side files ----------------------------------
-clean_level(fileID)
 validation_dict = {table: {} for table in cdm.properties.cdm_tables}
 
 # DO THE DATA PROCESSING ------------------------------------------------------
@@ -320,7 +262,7 @@ table = "header"
 table_df = read_table_files(table)
 
 if len(table_df) == 0:
-    logging.error(f"No data could be read for file partition {fileID}")
+    logging.error(f"No data could be read for file partition {params.fileID}")
     sys.exit(1)
 
 table_df.set_index("report_id", inplace=True, drop=False)
@@ -378,17 +320,10 @@ cdm_columns = cdm_tables.get(table).keys()
 for field in validated:
     if False in mask_df[field].value_counts().index:
         idata_filename = os.path.join(
-            level_invalid_path, FFS.join(["header", fileID, field]) + ".psv"
+            params.level_invalid_path,
+            FFS.join(["header", params.fileID, field]) + ".psv",
         )
-        table_df[~mask_df[field]].to_csv(
-            idata_filename,
-            index=False,
-            sep=delimiter,
-            columns=cdm_columns,
-            header=header,
-            mode=wmode,
-            na_rep="null",
-        )
+        table_to_csv(table_df[~mask_df[field]], idata_filename, columns=cdm_columns)
 
 
 # 4. REPORT INVALIDS PER FIELD  -----------------------------------------------
@@ -409,13 +344,13 @@ process_table(table_df, table)
 obs_tables = [x for x in cdm_tables.keys() if x != "header"]
 for table in obs_tables:
     table_pattern = FFS.join([table, params.prev_fileID]) + "*.psv"
-    table_files = glob.glob(os.path.join(prev_level_path, table_pattern))
+    table_files = glob.glob(os.path.join(params.prev_level_path, table_pattern))
     if len(table_files) > 0:
         logging.info(f"Cleaning table {table}")
         process_table(table, table)
 
 logging.info("Saving json quicklook")
-L1b_io_filename = os.path.join(level_ql_path, fileID + ".json")
+L1b_io_filename = os.path.join(params.level_ql_path, params.fileID + ".json")
 with open(L1b_io_filename, "w") as fileObj:
     simplejson.dump(
         {"-".join([params.year, params.month]): validation_dict},

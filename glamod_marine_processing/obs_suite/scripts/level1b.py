@@ -51,7 +51,6 @@ configfile includes:
 from __future__ import annotations
 
 import datetime
-import glob
 import logging
 import os
 import sys
@@ -60,34 +59,21 @@ from importlib import reload
 import numpy as np
 import pandas as pd
 import simplejson
-from _utilities import date_handler, script_setup
+from _utilities import (
+    FFS,
+    date_handler,
+    delimiter,
+    paths_exist,
+    script_setup,
+    table_to_csv,
+)
 from cdm_reader_mapper import cdm_mapper as cdm
 from cdm_reader_mapper.operations import replace
 
 reload(logging)  # This is to override potential previous config of logging
 
 
-def clean_L1b(L1b_id):
-    """Clean level 1b."""
-    L1b_prods = glob.glob(os.path.join(L1b_path, "*-" + L1b_id + ".psv"))
-    L1b_prods_idate = glob.glob(
-        os.path.join(
-            L1b_path,
-            "*" + "-".join([str(params.year), str(params.month).zfill(2)]) + ".psv",
-        )
-    )
-    L1b_ql = glob.glob(os.path.join(L1b_ql_path, L1b_id + ".*"))
-    for filename in L1b_prods + L1b_prods_idate + L1b_ql:
-        try:
-            logging.info(f"Removing previous file: {filename}")
-            os.remove(filename)
-        except Exception:
-            pass
-
-
 # MAIN ------------------------------------------------------------------------
-
-
 # Process input and set up some things ----------------------------------------
 logging.basicConfig(
     format="%(levelname)s\t[%(asctime)s](%(filename)s)\t%(message)s",
@@ -103,47 +89,17 @@ else:
     sys.exit(1)
 
 process_options = ["correction_version", "corrections", "histories"]
-params = script_setup(process_options, args)
+params = script_setup(process_options, args, "level1b", "level1a")
 
-filename_field_sep = "-"
-delimiter = "|"
 cor_ext = ".txt.gz"
-
-release_path = os.path.join(params.data_path, params.release, params.dataset)
-release_id = filename_field_sep.join([params.release, params.update])
-fileID = filename_field_sep.join(
-    [str(params.year), str(params.month).zfill(2), release_id]
-)
-fileID_date = filename_field_sep.join([str(params.year), str(params.month)])
-if params.prev_fileID is None:
-    params.prev_fileID = fileID
-
-L1a_path = os.path.join(release_path, "level1a", params.sid_dck)
-L1b_path = os.path.join(release_path, "level1b", params.sid_dck)
-L1b_ql_path = os.path.join(release_path, "level1b", "quicklooks", params.sid_dck)
 
 L1b_main_corrections = os.path.join(
     params.data_path, params.release, "NOC_corrections", params.correction_version
 )
 
 logging.info(f"Setting corrections path to {L1b_main_corrections}")
+paths_exist(L1b_main_corrections)
 
-data_paths = [L1a_path, L1b_path, L1b_ql_path, L1b_main_corrections]
-if any([not os.path.isdir(x) for x in data_paths]):
-    logging.error(
-        "Could not find data paths: {}".format(
-            ",".join([x for x in data_paths if not os.path.isdir(x)])
-        )
-    )
-    sys.exit(1)
-
-L1a_filename = params.filename
-if not os.path.isfile(L1a_filename):
-    logging.error(f"L1a header file not found: {L1a_filename}")
-    sys.exit(1)
-
-# Clean previous L1a products and side files ----------------------------------
-clean_L1b(fileID)
 correction_dict = {table: {} for table in cdm.properties.cdm_tables}
 
 # Do the data processing ------------------------------------------------------
@@ -155,10 +111,12 @@ cdm_tables = cdm.load_tables()
 history_tstmp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 for table in cdm.properties.cdm_tables:
     datetime_col = "report_timestamp" if table == "header" else "date_time"
-    logging.info(L1a_path)
+    logging.info(params.prev_level_path)
     logging.info(params.prev_fileID)
     logging.info(table)
-    table_df = cdm.read_tables(L1a_path, params.prev_fileID, cdm_subset=[table])
+    table_df = cdm.read_tables(
+        params.prev_level_path, params.prev_fileID, cdm_subset=[table]
+    )
 
     if len(table_df) == 0:
         logging.warning(f"Empty or non-existing table {table}")
@@ -179,7 +137,9 @@ for table in cdm.properties.cdm_tables:
     for correction, element in table_corrections.items():
         correction_dict[table]["corrections"][element] = {"applied": 1, "number": 0}
         logging.info(f"Applying corrections for element {element}")
-        cor_path = os.path.join(L1b_main_corrections, correction, fileID_date + cor_ext)
+        cor_path = os.path.join(
+            L1b_main_corrections, correction, params.fileID_date + cor_ext
+        )
         if not os.path.isfile(cor_path):
             logging.warning(f"Correction file {cor_path} not found")
             continue
@@ -259,8 +219,6 @@ for table in cdm.properties.cdm_tables:
 
     # Now get ready to write out, extracting eventual leaks of data to a different monthly table
     cdm_columns = cdm_tables.get(table).keys()
-    header = True
-    wmode = "w"
     # BECAUSE LIZ'S datetimes have UTC info:
     # ValueError: Tz-aware datetime.datetime cannot be converted to datetime64 unless utc=True
     table_df["monthly_period"] = pd.to_datetime(
@@ -287,15 +245,10 @@ for table in cdm.properties.cdm_tables:
             )
         )
         filename = os.path.join(
-            L1b_path, filename_field_sep.join([table, fileID]) + ".psv"
+            params.level_path, FFS.join([table, params.fileID]) + ".psv"
         )
-        table_df.loc[[source_mon_period], :].to_csv(
-            filename,
-            index=False,
-            sep=delimiter,
-            columns=cdm_columns,
-            header=header,
-            mode=wmode,
+        table_to_csv(
+            table_df.loc[[source_mon_period], :], filename, columns=cdm_columns
         )
         table_df.drop(source_mon_period, inplace=True)
         len_df_i = len_df
@@ -316,23 +269,16 @@ for table in cdm.properties.cdm_tables:
             logging.info(
                 "Writing {} data to {} table file".format(leak.strftime("%Y-%m"), table)
             )
-            L1b_idl = filename_field_sep.join(
+            L1b_idl = FFS.join(
                 [
                     table,
                     leak.strftime("%Y-%m"),
-                    release_id,
+                    params.release_id,
                     source_mon_period.strftime("%Y-%m"),
                 ]
             )
-            filename = os.path.join(L1b_path, L1b_idl + ".psv")
-            table_df.loc[[leak], :].to_csv(
-                filename,
-                index=False,
-                sep=delimiter,
-                columns=cdm_columns,
-                header=header,
-                mode=wmode,
-            )
+            filename = os.path.join(params.level_path, L1b_idl + ".psv")
+            table_to_csv(table_df.loc[[leak], :], filename, columns=cdm_columns)
             table_df.drop(leak, inplace=True)
             len_df_i = len_df
             len_df = len(table_df)
@@ -349,7 +295,7 @@ for table in cdm.properties.cdm_tables:
 correction_dict["date processed"] = datetime.datetime.now()
 
 logging.info("Saving json quicklook")
-L1b_io_filename = os.path.join(L1b_ql_path, fileID + ".json")
+L1b_io_filename = os.path.join(params.level_ql_path, params.fileID + ".json")
 with open(L1b_io_filename, "w") as fileObj:
     simplejson.dump(
         {"-".join([params.year, params.month]): correction_dict},

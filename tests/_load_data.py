@@ -3,22 +3,6 @@ from __future__ import annotations
 from cdm_reader_mapper.common.getting_files import load_file
 
 
-def load_NOC_corrections(**kwargs):
-    """Load NOC correction data from cdm-testdata."""
-    for sub in [
-        "duplicate_flags",
-        "duplicates",
-        "id",
-        "latitude",
-        "longitude",
-        "timestamp",
-    ]:
-        load_file(
-            f"NOC_corrections/v1x2023/{sub}/2022-01.txt.gz",
-            **kwargs,
-        )
-
-
 def load_NOC_ANC_INFO(**kwargs):
     """Load NOC ANC INFO data from cdm-testdata."""
     load_file(

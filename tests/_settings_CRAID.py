@@ -64,3 +64,20 @@ pattern = {
     "level1e": "header-craid_????-??-??_subset.psv",
     "level2": "header-craid_????-??-??_subset.psv",
 }
+
+manipulation = {
+    "level1b": {
+        ("header", "duplicate_status"): [
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+        ]
+    }
+}

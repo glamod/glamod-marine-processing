@@ -69,7 +69,7 @@ class Cli:
         self.config_file = config_file
         self.suite = suite
         self.release_update = f"{release}-{update}"
-        self.deck_list = (deck_list,)
+        self.deck_list = deck_list
         self.overwrite = overwrite
 
     def initialize(self):
@@ -156,10 +156,11 @@ class Options:
         self.machine = click.option(
             "-m",
             "--machine",
-            default="MELUXINA",
+            default="BASTION",
             help="""HPC cluster where to create and run the scripts, \n
             * KAY: kay.ichec.ie \n
-            * MELUXINA: login.lxp.lu
+            * MELUXINA: login.lxp.lu \n
+            * BASTION: bastion01.core.ichec.ie
             """,
         )
         self.submit_jobs = click.option(

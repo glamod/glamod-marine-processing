@@ -4,5 +4,6 @@
   "job_memo_mb": 4000,
   "job_time_hr": "01",
   "job_time_min": "00",
-  "correction_version": "null"
+  "correction_version": "null",
+  "ignore_columns": "primary_station_id"
 }

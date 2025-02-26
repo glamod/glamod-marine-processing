@@ -64,18 +64,10 @@ from io import StringIO
 
 import numpy as np
 import pandas as pd
-from _utilities import (
-    FFS,
-    chunksizes,
-    date_handler,
-    save_quicklook,
-    script_setup,
-    write_cdm_tables,
-)
-from cdm_reader_mapper import cdm_mapper as cdm
-from cdm_reader_mapper import mdf_reader, metmetpy
-from cdm_reader_mapper.common import pandas_TextParser_hdlr
-from cdm_reader_mapper.operations import inspect, select
+from _utilities import FFS, chunksizes, date_handler, save_quicklook, script_setup
+from cdm_reader_mapper import read_mdf
+from cdm_reader_mapper.cdm_mapper import properties
+from cdm_reader_mapper.common import inspect, pandas_TextParser_hdlr
 
 reload(logging)  # This is to override potential previous config of logging
 
@@ -128,9 +120,9 @@ read_kwargs = {
     "chunksize": chunksize,
 }
 
-data_in = mdf_reader.read(L0_filename, **read_kwargs)
+data_in = read_mdf(L0_filename, **read_kwargs)
 
-io_dict["read"] = {"total": inspect.get_length(data_in.data)}
+io_dict["read"] = {"total": len(data_in)}
 
 # 2. PT fixing, filtering and invalid rejectionselect_true
 # 2.1. Fix platform type
@@ -140,14 +132,12 @@ io_dict["read"] = {"total": inspect.get_length(data_in.data)}
 # we now do the dirty trick here: dataset_metmetpy = icoads_r3000
 
 logging.info("Applying platform type fixtures")
-data_in.data = metmetpy.correct_pt.correct(data_in.data, imodel=data_model)
-
+data_in = data_in.correct_pt()
 # 2.2. Apply record selection (filter by) criteria: PT types.....
 if params.filter_reports_by:
     logging.info("Applying selection filters")
     io_dict["not_selected"] = {}
     data_excluded = {}
-    data_excluded["attrs"] = data_in.attrs.copy()
     data_excluded["data"] = {}
     # 3.1. Select by report_filters options
     for k, v in params.filter_reports_by.items():
@@ -157,15 +147,15 @@ if params.filter_reports_by:
         col = filter_location[0] if len(filter_location) == 1 else filter_location
         values = v
         selection = {col: values}
-        data_in.data, data_excluded["data"][k], index = select.select_from_list(
-            data_in.data, selection, out_rejected=True, in_index=True
+        data_in, data_excluded["data"][k] = data_in.select_from_list(
+            selection, return_invalid=True, out_rejected=True
         )
-        data_in.mask = select.select_from_index(data_in.mask, index)
+        data_in.select_from_index(data_in.index, data="mask", out_rejected=True)
         io_dict["not_selected"][k]["total"] = inspect.get_length(
             data_excluded["data"][k]
         )
         if io_dict["not_selected"][k]["total"] > 0:
-            if data_in.attrs[col]["column_type"] in ["str", "object", "key"]:
+            if data_in.dtype.get(col, {}) in ["str", "object", "key"]:
                 io_dict["not_selected"][k].update(
                     inspect.count_by_cat(data_excluded["data"][k], col)
                 )
@@ -173,8 +163,7 @@ if params.filter_reports_by:
         [v.get("total") for k, v in io_dict["not_selected"].items()]
     )
 
-io_dict["pre_selected"] = {"total": inspect.get_length(data_in.data)}
-
+io_dict["pre_selected"] = {"total": len(data_in)}
 # 2.3. Keep track of invalid data
 # First create a global mask and count failure occurrences
 newmask_buffer = StringIO()
@@ -212,7 +201,7 @@ if chunksize:
 for col in masked_columns:
     k = ".".join(col)
     if io_dict["invalid"][k]["total"] > 0:
-        if data_in.attrs.get(col, {}).get("column_type") in cdm.properties.object_types:
+        if data_in.dtypes.get(col, {}) in properties.object_types:
             ivalues = list(set(io_dict["invalid"][k]["values"]))
             # This is because sorting fails on strings if nan
             if np.nan in ivalues:
@@ -229,10 +218,7 @@ for col in masked_columns:
                 {i: io_dict["invalid"][k]["values"].count(i) for i in ivalues}
             )
             sush = io_dict["invalid"][k].pop("values", None)
-        elif (
-            data_in.attrs.get(col, {}).get("column_type")
-            in cdm.properties.numeric_types
-        ):
+        elif data_in.dtypes.get(col, {}) in properties.numeric_types:
             values = io_dict["invalid"][k]["values"]
             values = np.array(values)[~pd.isnull(values)]
             if len(values > 0):
@@ -255,12 +241,11 @@ for col in masked_columns:
 
 # 2.4. Discard invalid data.
 data_invalid = {}
-data_invalid["attrs"] = data_in.attrs.copy()
-data_in.data, data_invalid["data"] = select.select_true(
-    data_in.data, data_in.mask, out_rejected=True
+data_in, data_invalid["data"] = data_in.select_true(
+    return_invalid=True, out_rejected=True
 )
-data_in.mask, data_invalid["valid_mask"] = select.select_true(
-    data_in.mask, data_in.mask, out_rejected=True
+data_in, data_invalid["valid_mask"] = data_in.select_true(
+    data="mask", return_invalid=True, out_rejected=True
 )
 io_dict["invalid"]["total"] = inspect.get_length(data_invalid["data"])
 io_dict["processed"] = {"total": inspect.get_length(data_in.data)}
@@ -274,16 +259,20 @@ if io_dict["processed"]["total"] == 0:
 # 3. Map to common data model and output files
 if process:
     logging.info("Mapping to CDM")
-    tables = cdm.properties.cdm_tables
+    tables = properties.cdm_tables
     io_dict.update({table: {} for table in tables})
-    logging.debug(f"Mapping attributes: {data_in.attrs}")
-    cdm_tables = cdm.map_model(data_in.data, imodel=data_model, log_level="INFO")
+    logging.debug(f"Mapping attributes: {data_in.dtypes}")
+    data_in.map_model(log_level="INFO")
 
     logging.info("Printing tables to psv files")
-    write_cdm_tables(params, cdm_tables)
+    data_in.write_tables(
+        out_dir=params.level_path,
+        suffix=params.fileID,
+    )
+    # write_cdm_tables(params, cdm_tables)
 
     for table in tables:
-        io_dict[table]["total"] = inspect.get_length(cdm_tables[table]["data"])
+        io_dict[table]["total"] = inspect.get_length(data_in.tables[table])
 
 logging.info("Saving json quicklook")
 save_quicklook(params, io_dict, date_handler)

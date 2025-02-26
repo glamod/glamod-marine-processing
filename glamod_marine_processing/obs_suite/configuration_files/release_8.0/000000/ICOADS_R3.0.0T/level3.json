@@ -1,0 +1,7 @@
+{
+  "process_list_file": "source_deck_list.txt",
+  "release_periods_file": "source_deck_periods.json",
+  "job_memo_mb": 500,
+  "job_time_hr": "00",
+  "job_time_min": "10"
+}

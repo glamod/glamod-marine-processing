@@ -9,6 +9,7 @@ input_dir = f"{data_model}/{release}/{deck}"
 cdm = f"icoads_{release}_{deck}_2022-01-01_subset"
 suffix = "imma"
 level0 = f"{input_dir}/input/{cdm}.{suffix}"
+release = "release_8.0"
 
 process_list = "114-992"
 year_init = "2020"
@@ -47,12 +48,12 @@ prev_level = {
 
 level_input = {
     "level1a": "datasets",
-    "level1b": "release_7.0",
-    "level1c": "release_7.0",
-    "level1d": "release_7.0",
-    "level1e": "release_7.0",
-    "level2": "release_7.0",
-    "level3": "release_7.0",
+    "level1b": release,
+    "level1c": release,
+    "level1d": release,
+    "level1e": release,
+    "level2": release,
+    "level3": release,
 }
 
 which_tables = {
@@ -74,7 +75,7 @@ pattern = {
     "level2": "header-icoads_r???_d???_????-??-??_subset.psv",
     "level3": "header-icoads_r???_d???_????-??-??_subset.psv",
 }
-pattern_out = {"level3": "pressure-data-2022-01-release_7.0-000000.psv"}
+pattern_out = {"level3": f"pressure-data-2022-01-{release}-000000.psv"}
 
 manipulation = {
     "level1b": {

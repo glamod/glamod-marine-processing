@@ -219,7 +219,6 @@ for sid_dck in process_list:
 
     year_init = int(get_year(release_periods, sid_dck, "year_init"))
     year_end = int(get_year(release_periods, sid_dck, "year_end"))
-
     source_files = glob.glob(os.path.join(level_source_dir, sid_dck, source_pattern))
     if level in slurm_preferences.one_task:
         source_files = [source_files[0]]
@@ -248,6 +247,7 @@ for sid_dck in process_list:
             ti = t
 
     calc_tasks = False
+    print(source_files)
     with open(taskfarm_file, "w") as fh:
         for source_file in source_files:
             yyyy, mm = get_yyyymm(source_file)

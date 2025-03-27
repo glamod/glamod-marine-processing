@@ -112,9 +112,9 @@ from _utilities import (
     read_cdm_tables,
     save_quicklook,
     script_setup,
-    table_to_csv,
+    write_cdm_tables,
 )
-from cdm_reader_mapper import cdm_mapper as cdm
+from cdm_reader_mapper.cdm_mapper import properties
 
 reload(logging)  # This is to override potential previous config of logging
 
@@ -192,7 +192,7 @@ def process_table(table_df, table):
         if table_df is None or len(table_df) == 0:
             logging.warning(f"Empty or non existing table {table}")
             return
-        table_df.set_index("report_id", inplace=True, drop=False)
+        table_df.set_index((table, "report_id"), inplace=True, drop=False)
 
     table_df = table_df[table_df.index.isin(mask_df.index)]
     table_mask = mask_df[mask_df.index.isin(table_df.index)]
@@ -204,7 +204,7 @@ def process_table(table_df, table):
             .to_dict()
         )
     if not table_df[table_mask["all"]].empty:
-        table_to_csv(params, table_df[table_mask["all"]], table=table)
+        write_cdm_tables(params, table_df[table_mask["all"]], tables=table)
     else:
         logging.warning(f"Table {table} is empty. No file will be produced")
 
@@ -229,7 +229,7 @@ id_validation_path = os.path.join(
 
 paths_exist([id_validation_path, params.level_invalid_path])
 
-ql_dict = {table: {} for table in cdm.properties.cdm_tables}
+ql_dict = {table: {} for table in properties.cdm_tables}
 
 # DO THE DATA PROCESSING ------------------------------------------------------
 
@@ -238,7 +238,6 @@ ql_dict = {table: {} for table in cdm.properties.cdm_tables}
 validated = ["report_timestamp", "primary_station_id"]
 history = "Performed report_timestamp (date_time) and primary_station_id validation"
 history_tstmp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-cdm_tables = cdm.get_cdm_atts()
 
 # 1. READ THE DATA-------------------------------------------------------------
 
@@ -246,22 +245,23 @@ cdm_tables = cdm.get_cdm_atts()
 # Table files can be multiple for a yyyy-mm if datetime corrections
 # in level1b resulted in a change in the month
 table = "header"
-table_df = read_table_files(table)
-
-if len(table_df) == 0:
+table_db = read_table_files(table)
+columns = table_db.columns
+table_db.data = table_db[table]
+if table_db.empty:
     logging.error(f"No data could be read for file partition {params.fileID}")
     sys.exit(1)
 
-table_df.set_index("report_id", inplace=True, drop=False)
+table_db.set_index("report_id", inplace=True, drop=False)
 # Initialize mask
-mask_df = pd.DataFrame(index=table_df.index, columns=validated + ["all"])
+mask_df = pd.DataFrame(index=table_db.index, columns=validated + ["all"])
 mask_df[validated] = True
 
 # 2. VALIDATE THE FIELDS-------------------------------------------------------
 # 2.1. Validate datetime
 field = "report_timestamp"
 mask_df[field] = pd.to_datetime(
-    table_df[field], format="mixed", errors="coerce"
+    table_db[field], format="mixed", errors="coerce"
 ).notna()
 
 # 2.2. Validate primary_station_id
@@ -270,19 +270,18 @@ ql_dict["id_validation_rules"] = {}
 
 # First get callsigns:
 logging.info("Applying callsign id validation")
-callsigns = table_df["primary_station_id_scheme"].isin(["5"]) & table_df[
-    "platform_type"
-].isin(["2", "33"])
+p_id_scheme = "primary_station_id_scheme"
+pt = "platform_type"
+callsigns = table_db[p_id_scheme].isin(["5"]) & table_db[pt].isin(["2", "33"])
 nocallsigns = ~callsigns
 relist = ["^([0-9]{1}[A-Z]{1}|^[A-Z]{1}[0-9]{1}|^[A-Z]{2})[A-Z0-9]{1,}$", "^[0-9]{5}$"]
 callre = re.compile("|".join(relist))
-mask_df.loc[callsigns, field] = table_df.loc[callsigns, field].str.match(
-    callre, na=True
+mask_df.loc[callsigns, field] = (
+    table_db[field].loc[callsigns].str.match(callre, na=True)
 )
-
 # Then the rest according to general validation rules
 logging.info("Applying general id validation")
-mask_df.loc[nocallsigns, field] = validate_id(table_df.loc[nocallsigns, field])
+mask_df.loc[nocallsigns, field] = validate_id(table_db[field].loc[callsigns])
 
 # And now set back to True all that the linkage provided
 # Instead, read in the header history field and check if it contains
@@ -290,8 +289,8 @@ mask_df.loc[nocallsigns, field] = validate_id(table_df.loc[nocallsigns, field])
 logging.info("Restoring linked IDs")
 linked_history = "Corrected primary_station_id"
 linked_IDs = (
-    table_df["history"].str.contains(linked_history)
-    & table_df["history"].str.contains("ID identification").notna()
+    table_db["history"].str.contains(linked_history)
+    & table_db["history"].str.contains("ID identification").notna()
 )
 
 linked_IDs_no = (linked_IDs).sum()
@@ -304,15 +303,14 @@ ql_dict["id_validation_rules"]["callsign"] = len(np.where(callsigns)[0])
 ql_dict["id_validation_rules"]["noncallsign"] = len(np.where(~callsigns)[0])
 
 # 3. OUTPUT INVALID REPORTS - HEADER ------------------------------------------
-cdm_columns = cdm_tables.get(table).keys()
 for field in validated:
     if False in mask_df[field].value_counts().index:
         ioutname = os.path.join(
             params.level_invalid_path,
             FFS.join(["header", params.fileID, field]) + ".psv",
         )
-        table_to_csv(
-            params, table_df[~mask_df[field]], outname=ioutname, columns=cdm_columns
+        write_cdm_tables(
+            params, table_db[~mask_df[field]], tables=table, outname=ioutname
         )
 
 
@@ -321,16 +319,17 @@ for field in validated:
 mask_df["all"] = mask_df.all(axis=1)
 # Report invalids
 ql_dict["invalid"] = {}
-ql_dict["invalid"]["total"] = len(table_df[~mask_df["all"]])
+ql_dict["invalid"]["total"] = len(table_db[~mask_df["all"]])
 for field in validated:
+    mask_df = mask_df.fillna(False)
     ql_dict["invalid"][field] = len(mask_df[field].loc[~mask_df[field]])
 
 # 5. CLEAN AND OUTPUT TABLES  -------------------------------------------------
 # Now process tables and log final numbers and some specifics in header table
 # First header table, already open
 logging.info("Cleaning table header")
-process_table(table_df, table)
-obs_tables = [x for x in cdm_tables.keys() if x != "header"]
+process_table(table_db, table)
+obs_tables = [x for x in properties.cdm_tables if x != "header"]
 for table in obs_tables:
     table_pattern = FFS.join([table, params.prev_fileID]) + "*.psv"
     table_files = glob.glob(os.path.join(params.prev_level_path, table_pattern))

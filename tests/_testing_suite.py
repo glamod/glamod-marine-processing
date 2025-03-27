@@ -5,7 +5,7 @@ import os
 import _load_data
 import pandas as pd
 from _settings import get_settings
-from cdm_reader_mapper.cdm_mapper import read_tables
+from cdm_reader_mapper import read_tables
 from cdm_reader_mapper.common.getting_files import load_file
 
 add_data = {
@@ -40,7 +40,7 @@ def _obs_testing(dataset, level, capsys):
     tables = _settings.which_tables[level]
     if add_data.get(level) is not None:
         add_data[level](
-            cache_dir=f"./T{level}/release_7.0",
+            cache_dir=f"./T{level}/release_8.0",
         )
 
     _load_data.load_input(dataset, level, _settings)
@@ -59,12 +59,12 @@ def _obs_testing(dataset, level, capsys):
         "-o "
         "-run"
     )
-
     os.system(s)
     captured = capsys.readouterr()
     assert captured.out == ""
 
-    result_dir = f"./T{level}/release_7.0/{dataset}/{level}/{_settings.process_list}"
+    result_dir = f"./T{level}/release_8.0/{dataset}/{level}/{_settings.process_list}"
+
     if _settings.pattern_out.get(level):
         results = pd.read_csv(
             os.path.join(result_dir, _settings.pattern_out[level]),
@@ -73,7 +73,7 @@ def _obs_testing(dataset, level, capsys):
             keep_default_na=False,
         )
     else:
-        results = read_tables(result_dir, cdm_subset=tables)
+        results = read_tables(result_dir, cdm_subset=tables).data
 
     for table_name in tables:
         load_file(
@@ -85,13 +85,11 @@ def _obs_testing(dataset, level, capsys):
     expected = read_tables(
         f"./E{level}/{dataset}/{level}/{_settings.deck}", cdm_subset=tables
     )
-
-    expected = manipulate_expected(expected, level)
+    expected = manipulate_expected(expected.data, level)
 
     if "header" in results.columns:
         for deletion in [("header", "record_timestamp"), ("header", "history")]:
             del results[deletion]
             del expected[deletion]
-    print(results)
-    print(expected)
+
     pd.testing.assert_frame_equal(results, expected)

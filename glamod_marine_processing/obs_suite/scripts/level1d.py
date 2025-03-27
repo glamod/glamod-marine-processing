@@ -69,9 +69,11 @@ from _utilities import (
     read_cdm_tables,
     save_quicklook,
     script_setup,
-    table_to_csv,
+    write_cdm_tables,
 )
-from cdm_reader_mapper import cdm_mapper as cdm
+from cdm_reader_mapper import map_model
+from cdm_reader_mapper.cdm_mapper import properties
+from cdm_reader_mapper.cdm_mapper.tables.tables import get_cdm_atts
 
 reload(logging)  # This is to override potential previous config of logging
 
@@ -79,36 +81,37 @@ reload(logging)  # This is to override potential previous config of logging
 def map_to_cdm(md_model, meta_df, log_level="INFO"):
     """Map to CDM."""
     # Atts is a minimum info on vars the cdm module requires
-    meta_cdm_dict = cdm.map_model(meta_df, imodel=md_model, log_level=log_level)
-    meta_cdm = pd.DataFrame()
-    for table in cdm_tables:
-        meta_cdm_columns = [(table, x) for x in meta_cdm_dict[table]["data"].columns]
-        meta_cdm[meta_cdm_columns] = meta_cdm_dict[table]["data"].astype("object")
-    return meta_cdm
+    meta_db = map_model(meta_df, imodel=md_model, log_level=log_level)
+    for table in properties.cdm_tables:
+        meta_db[table] = meta_db[table].astype(
+            "object"
+        )  # meta_cdm[meta_cdm_columns] = meta_cdm_dict[table]["data"].astype("object")
+    return meta_db
 
 
-def process_table(table_df, table):
+def process_table(table_db, table):
     """Process table."""
     logging.info(f"Processing table {table}")
-    if isinstance(table_df, str):
+    if isinstance(table_db, str):
         # Assume 'header' and in a DF in table_df otherwise
         # Open table and reindex
-        table_df = read_cdm_tables(params, table)
-        if table_df is None or len(table_df) == 0:
+        table_db = read_cdm_tables(params, table)
+        if table_db is None or table_db.empty:
             logging.warning(f"Empty or non existing table {table}")
             return
-        table_df.set_index("report_id", inplace=True, drop=False)
-        header_ = header_df.copy()
+        table_db.data = table_db[table]
+        table_db.set_index("report_id", inplace=True, drop=False)
+        header_ = header_db.copy()
         # by this point, header_df has its index set to report_id, hopefully ;)
-        table_df = table_df[table_df.index.isin(header_.index)]
-        table_df["primary_station_id"] = header_["primary_station_id"].loc[
-            table_df.index
+        table_db = table_db[table_db.index.isin(header_.index)]
+        table_db["primary_station_id"] = header_["primary_station_id"].loc[
+            table_db.index
         ]
 
-    ql_dict[table] = {"total": len(table_df), "updated": 0}
+    ql_dict[table] = {"total": len(table_db), "updated": 0}
     if merge:
-        ql_dict[table] = {"total": len(table_df), "updated": 0}
-        table_df.set_index("primary_station_id", drop=False, inplace=True)
+        ql_dict[table] = {"total": len(table_db), "updated": 0}
+        table_db.set_index("primary_station_id", drop=False, inplace=True)
 
         if table == "header":
             meta_table = meta_cdm[[x for x in meta_cdm if x[0] == table]]
@@ -127,23 +130,22 @@ def process_table(table_df, table):
             meta_table.columns = [x[1] for x in meta_table]
 
         meta_table.set_index("primary_station_id", drop=False, inplace=True)
-        table_df.update(meta_table[~meta_table.index.duplicated()])
+        table_db.update(meta_table[~meta_table.index.duplicated()])
 
-        updated_locs = [x for x in table_df.index if x in meta_table.index]
+        updated_locs = [x for x in table_db.index if x in meta_table.index]
         ql_dict[table]["updated"] = len(updated_locs)
 
         if table == "header":
-            missing_ids = [x for x in table_df.index if x not in meta_table.index]
+            missing_ids = [x for x in table_db.index if x not in meta_table.index]
             if len(missing_ids) > 0:
                 ql_dict["non " + params.md_model + " ids"] = {
                     k: v for k, v in Counter(missing_ids).items()
                 }
             history_add = ";{}. {}".format(history_tstmp, "metadata fix")
-            locs = table_df["primary_station_id"].isin(updated_locs)
-            table_df["history"].loc[locs] = table_df["history"].loc[locs] + history_add
+            locs = table_db["primary_station_id"].isin(updated_locs)
+            table_db["history"].loc[locs] = table_db["history"].loc[locs] + history_add
 
-    cdm_columns = cdm_tables.get(table).keys()
-    table_to_csv(params, table_df, table=table, columns=cdm_columns)
+    write_cdm_tables(params, table_db, tables=table, columns=cdm_atts.get(table).keys())
 
 
 # END FUNCTIONS ---------------------------------------------------------------
@@ -204,15 +206,16 @@ ql_dict = {}
 # DO THE DATA PROCESSING ------------------------------------------------------
 # -----------------------------------------------------------------------------
 history_tstmp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-cdm_tables = cdm.get_cdm_atts()
-obs_tables = [x for x in cdm_tables.keys() if x != "header"]
+cdm_atts = get_cdm_atts()
+obs_tables = [x for x in cdm_atts.keys() if x != "header"]
 
 # 1. SEE STATION ID's FROM BOTH DATA STREAMS AND SEE IF THERE'S ANYTHING TO
 # MERGE AT ALL
 # Read the header table
-header_df = read_cdm_tables(params, "header")
+header_db = read_cdm_tables(params, "header")
+header_db.data = header_db["header"]
 
-if len(header_df) == 0:
+if header_db.empty:
     logging.error("Empty or non-existing header table")
     sys.exit(1)
 
@@ -231,11 +234,11 @@ if md_avail:
         sys.exit(1)
 
 # See if there's anything to do
-header_df.set_index("primary_station_id", drop=False, inplace=True)
+header_db.set_index("primary_station_id", drop=False, inplace=True)
 merge = True if md_avail else False
 if md_avail:
     meta_df = meta_df.loc[
-        meta_df["ship_callsign"].isin(header_df["primary_station_id"])
+        meta_df["ship_callsign"].isin(header_db["primary_station_id"])
     ]
     if len(meta_df) == 0:
         logging.warning("No metadata to merge in file")
@@ -248,9 +251,9 @@ if merge:
 
 # 3. UPDATE CDM WITH PUB47 OR JUST COPY PREV LEVEL TO CURRENT -----------------
 # This is only valid for the header
-process_table(header_df, "header")
+process_table(header_db, "header")
 
-header_df.set_index("report_id", inplace=True, drop=False)
+header_db.set_index("report_id", inplace=True, drop=False)
 # for obs
 for table in obs_tables:
     process_table(table, table)

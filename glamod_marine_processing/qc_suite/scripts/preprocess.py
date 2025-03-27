@@ -39,7 +39,7 @@ parser.add_argument(
     "-destination", type=str, help="Path to output directory", required=True
 )
 parser.add_argument(
-    "-release", type=str, help="Release identifier, e.g. release_7.0", required=True
+    "-release", type=str, help="Release identifier, e.g. release_8.0", required=True
 )
 parser.add_argument(
     "-update", type=str, help="Update identifier, e.g. 000000", required=True

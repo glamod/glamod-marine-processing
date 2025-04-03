@@ -135,9 +135,10 @@ from _utilities import (
     read_cdm_tables,
     save_quicklook,
     script_setup,
-    table_to_csv,
+    write_cdm_tables,
 )
-from cdm_reader_mapper import cdm_mapper as cdm
+from cdm_reader_mapper import read_tables
+from cdm_reader_mapper.cdm_mapper.tables.tables import get_cdm_atts
 
 reload(logging)  # This is to override potential previous config of logging
 
@@ -167,7 +168,7 @@ def get_qc_flags(qc, qc_df_full):
     # and keep only reports from current monthly table
     # qc_df['UID'] = 'ICOADS-30-' + qc_df['UID']
     qc_df.set_index("UID", inplace=True, drop=True)
-    qc_df = qc_df.reindex(header_df.index)
+    qc_df = qc_df.reindex(header_db.index)
     if len(qc_df.dropna(how="all")) == 0:
         # We can have files with nothing other than duplicates (which are not qced):
         # set qc to not available but don't fail: keep on generating level1e product afterwards
@@ -236,13 +237,12 @@ def process_table(table_df, table, pass_time=None):
     if isinstance(table_df, str):
         # Assume 'header' and in a DF in table_df otherwise
         # Open table and reindex
-        table_df = pd.DataFrame()
         table_df = read_cdm_tables(params, table)
 
-        if table_df is None or len(table_df) == 0:
+        if table_df is None or table_df.empty:
             logging.warning(f"Empty or non existing table {table}")
             return
-        table_df.set_index("report_id", inplace=True, drop=False)
+        table_df = table_df[table].set_index("report_id", drop=False)
 
     previous = len(table_df)
     table_df = table_df[table_df["report_id"].isin(report_ids)]
@@ -273,15 +273,15 @@ def process_table(table_df, table, pass_time=None):
         if table == "header":
             table_df.update(qc_df["report_quality"])
             history_add = f";{history_tstmp}. {params.history_explain}"
-            table_df["report_time_quality"] = pass_time
+            table_df.loc[:, "report_time_quality"] = pass_time
             ql_dict[table]["location_quality_flag"] = (
                 table_df["location_quality"].value_counts(dropna=False).to_dict()
             )
             ql_dict[table]["report_quality_flag"] = (
                 table_df["report_quality"].value_counts(dropna=False).to_dict()
             )
-            table_df["history"].loc[updated_locs] = (
-                table_df["history"].loc[updated_locs] + history_add
+            table_df.update(
+                table_df.loc[updated_locs, "history"].apply(lambda x: x + history_add)
             )
     # Here very last minute change to account for reports not in QC files:
     # need to make sure it is all not-checked!
@@ -289,19 +289,22 @@ def process_table(table_df, table, pass_time=None):
     # What happens if not POS flags matching?
     else:
         if table != "header":
-            table_df["quality_flag"] = not_checked_param
+            table_df.loc[:, "quality_flag"] = not_checked_param
         else:
-            table_df["report_time_quality"] = pass_time
-            table_df["report_quality"] = not_checked_report
-            table_df["location_quality"] = not_checked_location
+            table_df.loc[:, "report_time_quality"] = pass_time
+            table_df.loc[:, "report_quality"] = not_checked_report
+            table_df.loc[:, "location_quality"] = not_checked_location
 
     if table != "header":
-        table_df["quality_flag"] = compare_quality_checks(table_df["quality_flag"])
-
+        table_df.loc[:, "quality_flag"] = compare_quality_checks(
+            table_df["quality_flag"]
+        )
     if table == "header":
-        table_df["report_quality"] = compare_quality_checks(table_df["report_quality"])
+        table_df.loc[:, "report_quality"] = compare_quality_checks(
+            table_df["report_quality"]
+        )
 
-    table_to_csv(params, table_df, table=table)
+    write_cdm_tables(params, table_df, tables=table)
 
 
 # ------------------------------------------------------------------------------
@@ -352,10 +355,10 @@ qc_delimiter = ","
 # -----------------------------------------------------------------------------
 
 # Some other parameters -------------------------------------------------------
-cdm_tables = cdm.get_cdm_atts()
-obs_tables = [x for x in cdm_tables.keys() if x != "header"]
+cdm_atts = get_cdm_atts()
+obs_tables = [x for x in cdm_atts.keys() if x != "header"]
 
-history_tstmp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+history_tstmp = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S")
 # -----------------------------------------------------------------------------
 
 # MAIN ------------------------------------------------------------------------
@@ -416,12 +419,9 @@ if not os.path.isfile(header_filename):
     logging.error(f"Header table file not found: {header_filename}")
     sys.exit(1)
 
-header_df = pd.DataFrame()
-header_df = cdm.read_tables(
-    params.prev_level_path, params.prev_fileID, cdm_subset=["header"], na_values="null"
-)
+header_db = read_cdm_tables(params, "header")["header"]
 
-if len(header_df) == 0:
+if header_db.empty:
     logging.error("Empty or non-existing header table")
     sys.exit(1)
 
@@ -443,19 +443,14 @@ if len(tables_in) == 1:
 # Remove report_ids without any observations
 report_ids = pd.Series()
 for table_in in tables_in:
-    df_ = cdm.read_tables(
-        params.prev_level_path,
-        params.prev_fileID,
-        cdm_subset=table_in,
-        na_values="null",
-    )
-    if not df_.empty:
-        report_ids = pd.concat([report_ids, df_["report_id"]], ignore_index=True)
-
+    db_ = read_cdm_tables(params, table_in)
+    if not db_.empty:
+        db_ = db_[table_in]
+        report_ids = pd.concat([report_ids, db_["report_id"]], ignore_index=True)
 report_ids = report_ids[report_ids.duplicated()]
 
 # DO THE DATA PROCESSING ------------------------------------------------------
-header_df.set_index("report_id", inplace=True, drop=False)
+header_db.set_index("report_id", inplace=True, drop=False)
 ql_dict = {}
 
 # 1. PROCESS QC FLAGS ---------------------------------------------------------
@@ -464,7 +459,7 @@ ql_dict = {}
 # TABLE (ALL REPORTS)
 # ALSO BUILD FROM FULL QC FLAGS SET THE REPORT_QUALITY FLAG
 qc_list = list({table_qc.get(table).get("qc") for table in tables_in})
-qc_df = pd.DataFrame(index=header_df.index, columns=qc_list)
+qc_df = pd.DataFrame(index=header_db.index, columns=qc_list)
 if qc_avail:
     # Make sure POS is first as we need it to process the rest!
     # The use of POS in other QCs is probably a need inherited from BetaRelease,
@@ -484,11 +479,11 @@ pass_time = None
 if params.no_qc_suite:
     qc_avail = True
     # Set report_quality to passed if report_quality is not checked
-    qc_df["report_quality"] = header_df["report_quality"]
+    qc_df["report_quality"] = header_db["report_quality"]
     qc_df["report_quality"] = qc_df["report_quality"].mask(
         qc_df["report_quality"] == "2", "0"
     )
-    pass_time = header_df["report_time_quality"]
+    pass_time = header_db["report_time_quality"]
 
 qc_df = qc_df[qc_df.index.isin(report_ids)]
 
@@ -501,28 +496,27 @@ qc_df = qc_df[qc_df.index.isin(report_ids)]
 #    header.location_quality = default not-checked ('3') to not-checked('3')
 
 # First header, then rest.
-location_quality = header_df["location_quality"].copy()
-report_time_quality = header_df["report_time_quality"].copy()
+location_quality = header_db["location_quality"].copy()
+report_time_quality = header_db["report_time_quality"].copy()
 
 flag = True if qc_avail else False
-process_table(header_df, "header", pass_time=pass_time)
-
+process_table(header_db, "header", pass_time=pass_time)
 for table in obs_tables:
     flag = True if table in tables_in and qc_avail else False
     process_table(table, table, pass_time=pass_time)
 
 # 3. wind QC
-table_wd = cdm.read_tables(
-    params.level_path, params.fileID, cdm_subset=["observations-wd"]
+table_wd = read_tables(
+    params.level_path, suffix=params.fileID, cdm_subset=["observations-wd"]
 )
-table_ws = cdm.read_tables(
-    params.level_path, params.fileID, cdm_subset=["observations-ws"]
+table_ws = read_tables(
+    params.level_path, suffix=params.fileID, cdm_subset=["observations-ws"]
 )
 
 windQC = wind_qc(table_wd=table_wd, table_ws=table_ws)
 
-table_to_csv(params, windQC.wind_direction, table="observations-wd")
-table_to_csv(params, windQC.wind_speed, table="observations-ws")
+write_cdm_tables(params, windQC.wind_direction, tables="observations-wd")
+write_cdm_tables(params, windQC.wind_speed, tables="observations-ws")
 
 # CHECKOUT --------------------------------------------------------------------
 logging.info("Saving json quicklook")

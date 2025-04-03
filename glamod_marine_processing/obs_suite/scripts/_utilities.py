@@ -10,7 +10,7 @@ import logging
 import os
 import sys
 
-from cdm_reader_mapper.cdm_mapper import cdm_to_ascii, read_tables
+from cdm_reader_mapper import read_tables
 
 from glamod_marine_processing.utilities import save_simplejson
 
@@ -195,44 +195,37 @@ def save_quicklook(params, ql_dict, date_handler):
 
 def read_cdm_tables(params, table):
     """Read CDM tables."""
-    print(params.prev_level_path)
-    print(params.prev_fileID)
-    print(table)
-    if isinstance(table, str):
-        table = [table]
+    # if isinstance(table, str):
+    #    table = [table]
     return read_tables(
         params.prev_level_path,
-        params.prev_fileID,
+        suffix=params.prev_fileID,
         cdm_subset=table,
         na_values="null",
     )
 
 
-def write_cdm_tables(params, cdm_tables):
-    """Write CDM tables."""
-    cdm_to_ascii(
-        cdm_tables,
-        log_level="DEBUG",
-        out_dir=params.level_path,
-        suffix=params.fileID,
-        prefix=None,
-    )
-
-
-def table_to_csv(params, df, table=None, outname=None, **kwargs):
+def write_cdm_tables(params, df, tables=[], outname=None, **kwargs):
     """Write table to disk."""
     if df.empty:
         return
-    if outname is None:
-        outname = os.path.join(
-            params.level_path, f"{FFS.join([table, params.fileID])}.psv"
+    if isinstance(tables, str):
+        tables = [tables]
+    for table in tables:
+        if outname is None:
+            outname = os.path.join(
+                params.level_path, f"{FFS.join([table, params.fileID])}.psv"
+            )
+        try:
+            df = df[table]
+        except KeyError:
+            logging.info(f"{table} not found.")
+        df.to_csv(
+            outname,
+            index=False,
+            sep=delimiter,
+            header=True,
+            mode="w",
+            na_rep="null",
+            **kwargs,
         )
-    df.to_csv(
-        outname,
-        index=False,
-        sep=delimiter,
-        header=True,
-        mode="w",
-        na_rep="null",
-        **kwargs,
-    )

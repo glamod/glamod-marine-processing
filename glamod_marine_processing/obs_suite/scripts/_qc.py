@@ -33,6 +33,7 @@ def wind_qc(table_wd, table_ws):
             "No wind direction QC is possible since table is empty or non exisisting table."
         )
     else:
+        table_wd = table_wd["observations-wd"]
         value_wd = table_wd["observation_value"].astype(float)
         table_wd["quality_flag"] = table_wd["quality_flag"].mask(
             (value_wd < 0.0) | (value_wd > 360.0),
@@ -43,6 +44,7 @@ def wind_qc(table_wd, table_ws):
             "No wind speed QC is possible since table is empty or non exisisting table."
         )
     else:
+        table_ws = table_ws["observations-ws"]
         value_ws = table_ws["observation_value"].astype(float)
         table_ws["quality_flag"] = table_ws["quality_flag"].mask(
             (value_ws < 0.0) | (value_ws > 99.9),

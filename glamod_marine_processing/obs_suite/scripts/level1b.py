@@ -58,7 +58,7 @@ from importlib import reload
 
 import numpy as np
 import pandas as pd
-from _utilities import (
+from _utilities import (  # table_to_csv,
     FFS,
     date_handler,
     delimiter,
@@ -66,10 +66,9 @@ from _utilities import (
     read_cdm_tables,
     save_quicklook,
     script_setup,
-    table_to_csv,
+    write_cdm_tables,
 )
-from cdm_reader_mapper import cdm_mapper as cdm
-from cdm_reader_mapper.operations import replace
+from cdm_reader_mapper.cdm_mapper import properties
 
 reload(logging)  # This is to override potential previous config of logging
 
@@ -118,29 +117,30 @@ logging.info(f"Setting corrections path to {L1b_main_corrections}")
 if params.correction_version != "null":
     paths_exist(L1b_main_corrections)
 
-ql_dict = {table: {} for table in cdm.properties.cdm_tables}
+ql_dict = {table: {} for table in properties.cdm_tables}
 
 # Do the data processing ------------------------------------------------------
 isChange = "1"
 dupNotEval = "4"
-cdm_tables = cdm.get_cdm_atts()
 
 # 1. Do it a table at a time....
-history_tstmp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-for table in cdm.properties.cdm_tables:
-    datetime_col = "report_timestamp" if table == "header" else "date_time"
+history_tstmp = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S")
+for table in properties.cdm_tables:
+    datetime_col = (
+        ("header", "report_timestamp") if table == "header" else (table, "date_time")
+    )
     logging.info(params.prev_level_path)
     logging.info(params.prev_fileID)
     logging.info(table)
-    table_df = read_cdm_tables(params, table)
+    table_db = read_cdm_tables(params, table)
 
-    if len(table_df) == 0:
+    if table_db.empty:
         logging.warning(f"Empty or non-existing table {table}")
         ql_dict[table]["read"] = 0
         continue
 
-    table_df.set_index("report_id", inplace=True, drop=False)
-    ql_dict[table]["read"] = len(table_df)
+    table_db.set_index((table, "report_id"), inplace=True, drop=False)
+    ql_dict[table]["read"] = len(table_db)
 
     if params.corrections is None:
         table_corrections = {}
@@ -176,10 +176,10 @@ for table in cdm.properties.cdm_tables:
             )
         else:
             correction_df = pd.Dataframe(columns=columns)
-        if len(correction_df) > 0:
+        if not correction_df.empty:
             correction_df.set_index("report_id", inplace=True, drop=False)
             try:
-                correction_df = correction_df.loc[table_df.index].drop_duplicates()
+                correction_df = correction_df.loc[table_db.index].drop_duplicates()
             except Exception:
                 logging.warning(
                     logging.warning(f"No {correction} corrections matching")
@@ -187,21 +187,21 @@ for table in cdm.properties.cdm_tables:
                 continue
 
         ql_dict[table]["corrections"][element]["applied"] = 0
-        table_df[element + ".former"] = table_df[element]
-        table_df[element + ".isChange"] = ""
-        table_df = replace.replace_columns(
-            table_df,
+        table_db[element + ".former"] = table_db[element]
+        table_db[element + ".isChange"] = ""
+        table_db.replace_columns(
             correction_df,
             pivot_c="report_id",
             rep_c=[element, element + ".isChange"],
+            inplace=True,
         )
-        table_df.set_index(
+        table_db.set_index(
             "report_id", inplace=True, drop=False
         )  # because it gets reindexed in every replacement....
-        replaced = table_df[element + ".isChange"] == isChange
+        replaced = table_db[element + ".isChange"] == isChange
 
-        not_replaced = table_df[element + ".isChange"] != isChange
-        table_df[element].loc[not_replaced] = table_df[element + ".former"].loc[
+        not_replaced = table_db[element + ".isChange"] != isChange
+        table_db[element].loc[not_replaced] = table_db[element + ".former"].loc[
             not_replaced
         ]
         ql_dict[table]["corrections"][element]["number"] = len(np.where(replaced)[0])
@@ -214,73 +214,69 @@ for table in cdm.properties.cdm_tables:
         # we only keep a lineage of the changes applied to the header
         # (some of these are shared with obs tables like position and datetime, although the name for the cdm element might not be the same....)
         if table == "header":
-            table_df["history"].loc[replaced] = (
-                table_df["history"].loc[replaced]
+            table_db["history"].loc[replaced] = (
+                table_db["history"].loc[replaced]
                 + f"; {history_tstmp}. {params.histories.get(correction)}"
             )
 
-        table_df.drop(element + ".former", axis=1)
-        table_df.drop(element + ".isChange", axis=1)
+        table_db.drop(element + ".former", axis=1)
+        table_db.drop(element + ".isChange", axis=1)
 
-    if table_df.empty:
+    if table_db.empty:
         logging.warning("Empty table {table}")
         continue
-
     # Track duplicate status
     if table == "header":
         ql_dict["duplicates"] = {}
         if params.correction_version == "null":
             if params.drop_qualities:
-                table_df = drop_qualities(table_df, params.drop_qualities)
-            DupDetect = cdm.duplicate_check(table_df, **params.duplicates)
-            DupDetect.flag_duplicates()
-            table_df = DupDetect.result
-        contains_info = table_df["duplicate_status"] != dupNotEval
+                table_db[table] = drop_qualities(table_db[table], params.drop_qualities)
+            table_db.duplicate_check(**params.duplicates, inplace=True)
+            table_db.flag_duplicates(inplace=True)
+        contains_info = table_db[(table, "duplicate_status")] != dupNotEval
         logging.info("Logging duplicate status info")
         if len(np.where(contains_info)[0]) > 0:
-            counts = table_df["duplicate_status"].value_counts()
+            counts = table_db[(table, "duplicate_status")].value_counts()
             for k in counts.index:
                 ql_dict["duplicates"][k] = int(
                     counts.loc[k]
                 )  # otherwise prints null to json!!!
         else:
             ql_dict["duplicates"][dupNotEval] = ql_dict[table]["read"]
-
     # Now get ready to write out, extracting eventual leaks of data to a different monthly table
-    cdm_columns = cdm_tables.get(table).keys()
+    # cdm_columns = cdm_tables.get(table).keys()
     # BECAUSE LIZ'S datetimes have UTC info:
     # ValueError: Tz-aware datetime.datetime cannot be converted to datetime64 unless utc=True
-    if table_df.empty:
+    if table_db.empty:
         continue
 
-    table_df["monthly_period"] = pd.to_datetime(
-        table_df[datetime_col], errors="coerce", utc=True
+    table_db[(table, "monthly_period")] = pd.to_datetime(
+        table_db[datetime_col], errors="coerce", utc=True
     ).dt.to_period("M")
-    monthly_periods = list(table_df["monthly_period"].dropna().unique())
-    source_mon_period = (
-        pd.Series(data=[datetime.datetime(int(params.year), int(params.month), 1)])
-        .dt.to_period("M")
-        .iloc[0]
+    monthly_periods = list(table_db[(table, "monthly_period")].dropna().unique())
+    source_mon_period = pd.Period(
+        year=int(params.year), month=int(params.month), freq="M"
     )
+
     # This is to account for files with no datetime and no datetime correction: we have to assume it pertains to
     # the date in the file
     if len(monthly_periods) == 0:
         monthly_periods.append(source_mon_period)
-    table_df["monthly_period"].fillna(source_mon_period, inplace=True)
-    table_df.set_index("monthly_period", inplace=True, drop=True)
-    len_df = len(table_df)
+    table_db[(table, "monthly_period")].fillna(source_mon_period, inplace=True)
+    table_db.set_index((table, "monthly_period"), inplace=True, drop=True)
+    len_db = len(table_db)
     if source_mon_period in monthly_periods:
         logging.info(
             "Writing {} data to {} table file".format(
                 source_mon_period.strftime("%Y-%m"), table
             )
         )
-        table_to_csv(params, table_df.loc[[source_mon_period], :], table=table)
+        write_cdm_tables(params, table_db.loc[[source_mon_period]], tables=table)
 
-        table_df.drop(source_mon_period, inplace=True)
-        len_df_i = len_df
-        len_df = len(table_df)
-        ql_dict[table]["total"] = len_df_i - len_df
+        table_db.drop(source_mon_period, inplace=True)
+        len_db_i = len_db
+        len_db = len(table_db)
+        ql_dict[table]["total"] = len_db_i - len_db
     else:
         ql_dict[table]["total"] = 0
         logging.warning(
@@ -305,11 +301,13 @@ for table in cdm.properties.cdm_tables:
                 ]
             )
             filename = os.path.join(params.level_path, L1b_idl + ".psv")
-            table_to_csv(params, table_df.loc[[leak], :], outname=filename)
-            table_df.drop(leak, inplace=True)
-            len_df_i = len_df
-            len_df = len(table_df)
-            ql_dict[table]["date leak out"][leak.strftime("%Y-%m")] = len_df_i - len_df
+            write_cdm_tables(
+                params, table_db.loc[[leak]], tables=table, outname=filename
+            )
+            table_db.drop(leak, inplace=True)
+            len_db_i = len_db
+            len_db = len(table_db)
+            ql_dict[table]["date leak out"][leak.strftime("%Y-%m")] = len_db_i - len_db
         ql_dict[table]["date leak out"]["total"] = sum(
             [v for k, v in ql_dict[table]["date leak out"].items()]
         )

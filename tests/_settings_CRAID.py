@@ -9,6 +9,7 @@ level0 = f"{data_model}/input/{cdm}.{suffix}"
 process_list = "1260810"
 year_init = "2000"
 year_end = "2010"
+release = "release_8.0"
 
 table_names = [
     "header",
@@ -39,12 +40,12 @@ prev_level = {
 
 level_input = {
     "level1a": "datasets",
-    "level1b": "release_7.0",
-    "level1c": "release_7.0",
-    "level1d": "release_7.0",
-    "level1e": "release_7.0",
-    "level2": "release_7.0",
-    "level3": "release_7.0",
+    "level1b": release,
+    "level1c": release,
+    "level1d": release,
+    "level1e": release,
+    "level2": release,
+    "level3": release,
 }
 
 which_tables = {
@@ -67,7 +68,7 @@ pattern = {
     "level3": "header-craid_????-??-??_subset.psv",
 }
 
-pattern_out = {"level3": "pressure-data-2004-12-release_7.0-000000.psv"}
+pattern_out = {"level3": f"pressure-data-2004-12-{release}-000000.psv"}
 
 manipulation = {
     "level1b": {

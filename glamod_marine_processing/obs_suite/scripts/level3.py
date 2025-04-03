@@ -33,7 +33,7 @@ import logging
 import sys
 from importlib import reload
 
-from _utilities import level3_columns, read_cdm_tables, script_setup, table_to_csv
+from _utilities import level3_columns, read_cdm_tables, script_setup, write_cdm_tables
 
 reload(logging)  # This is to override potential previous config of logging
 
@@ -47,7 +47,7 @@ def process_table(table_df):
 
     cdm_obs_core_df = cdm_obs_core_df[cdm_obs_core_df["observation_value"].notnull()]
 
-    table_to_csv(params, cdm_obs_core_df, table="pressure-data")
+    write_cdm_tables(params, cdm_obs_core_df, tables="pressure-data")
 
 
 # MAIN ------------------------------------------------------------------------
@@ -68,7 +68,7 @@ obs_table = "observations-slp"
 header_table = "header"
 cdm_tables = [header_table, obs_table]
 
-history_tstmp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+history_tstmp = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S")
 
 table_df = read_cdm_tables(params, cdm_tables)
 

@@ -1,36 +1,30 @@
 {
-  "release": "release_2.0",
-  "update": "000000",
-  "dataset": "ICOADS_R3.0.0T",
-  "config": {
-    "data_model": "imma1",
-    "read_sections": [
-      "core",
-      "c1",
-      "c98"
-    ],
-    "filter_reports_by": {
-      "c1.PT": [
-        "0",
-        "1",
-        "2",
-        "3",
-        "4",
-        "5"
-      ]
-    },
-    "cdm_map": "icoads_r3000"
+  "process_list_file": "source_deck_list.txt",
+  "release_periods_file": "source_deck_periods.json",
+  "job_memo_mb": 4000,
+  "job_time_hr": "01",
+  "job_time_min": "30",
+  "read_sections": [
+    "core",
+    "c1",
+    "c98",
+    "c99_data"
+  ],
+  "filter_reports_by": {
+    "c1.PT": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5"
+    ]
   },
-  "job_config": {
-    "data_level": "level1a",
-    "source_level": "level0",
-    "source_file_ext": "imma",
-    "source_filename_prefix": "",
-    "source_filename_suffix": "",
-    "environment": "0",
-    "job_memo_mb": 4000,
-    "job_time_hr": "01",
-    "job_time_min": "30",
-    "script_name": "level1a.py"
+  "data_model": {
+    "base": "icoads_r300_d",
+    "extra": "dck"
+  },
+  "069-701_form_type1": {
+    "data_model": "icoads_r300_d701_type1"
   }
 }

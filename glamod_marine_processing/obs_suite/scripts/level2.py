@@ -43,7 +43,6 @@ json file as created by L2_list_create.py.
 from __future__ import annotations
 
 import glob
-import json
 import logging
 import os
 import shutil
@@ -90,12 +89,11 @@ paths_exist([params.level_excluded_path, params.level_reports_path])
 cdm_tables = properties.cdm_tables
 obs_tables = [x for x in cdm_tables if x != "header"]
 
-with open(params.level2_list) as fileObj:
-    include_list = json.load(fileObj)
+include_list = params.include_list
 
 if not include_list.get(params.sid_dck):
     logging.warning(
-        f"sid-dck {params.sid_dck} not registered in level2 list {params.level2_list}"
+        f"sid-dck {params.sid_dck} not registered in level2 list {include_list}"
     )
     year_init = int(include_list.get("year_init"))
     year_end = int(include_list.get("year_end"))

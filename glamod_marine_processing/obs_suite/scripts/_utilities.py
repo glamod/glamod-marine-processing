@@ -96,10 +96,16 @@ class script_setup:
 
         try:
             for opt in process_options:
-                if not config.get(sid_dck, {}).get(opt):
-                    setattr(self, opt, config.get(opt))
+                if config.get(sid_dck, {}).get(opt):
+                    config_opt = config[sid_dck][opt]
                 else:
-                    setattr(self, opt, config.get(sid_dck).get(opt))
+                    config_opt = config.get(opt)
+                if isinstance(config_opt, dict):
+                    if "base" in config_opt.keys() and "extra" in config_opt.keys():
+                        config_opt = config_opt["base"] + getattr(
+                            self, config_opt["extra"]
+                        )
+                setattr(self, opt, config_opt)
         except Exception:
             logging.error(
                 f"Parsing configuration from file: {configfile}", exc_info=True
@@ -110,7 +116,7 @@ class script_setup:
         self.release = config["abbreviations"].get("release")
 
         self.filename = config.get("filename")
-        self.level2_list = config.get("cmd_add_file")
+        self.include_list = config.get("include_list")
         self.prev_fileID = config.get("prev_fileID")
         self.release_id = config["abbreviations"].get("release_tag")
         self.fileID = FFS.join(
@@ -219,7 +225,10 @@ def write_cdm_tables(params, df, tables=[], outname=None, **kwargs):
         try:
             df = df[table]
         except KeyError:
-            logging.info(f"{table} not found.")
+            if len(tables) > 1:
+                logging.info(f"{table} not found.")
+                continue
+        logging.info(f"Write {outname} on disk.")
         df.to_csv(
             outname,
             index=False,

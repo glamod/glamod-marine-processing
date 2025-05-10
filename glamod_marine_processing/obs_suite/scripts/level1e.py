@@ -128,7 +128,6 @@ from importlib import reload
 
 import numpy as np
 import pandas as pd
-from _qc import wind_qc
 from _utilities import (
     date_handler,
     paths_exist,
@@ -137,7 +136,6 @@ from _utilities import (
     script_setup,
     write_cdm_tables,
 )
-from cdm_reader_mapper import read_tables
 from cdm_reader_mapper.cdm_mapper.tables.tables import get_cdm_atts
 
 reload(logging)  # This is to override potential previous config of logging
@@ -508,19 +506,6 @@ process_table(header_db, "header", pass_time=pass_time)
 for table in obs_tables:
     flag = True if table in tables_in and qc_avail else False
     process_table(table, table, pass_time=pass_time)
-
-# 3. wind QC
-table_wd = read_tables(
-    params.level_path, suffix=params.fileID, cdm_subset=["observations-wd"]
-)
-table_ws = read_tables(
-    params.level_path, suffix=params.fileID, cdm_subset=["observations-ws"]
-)
-
-windQC = wind_qc(table_wd=table_wd, table_ws=table_ws)
-
-write_cdm_tables(params, windQC.wind_direction, tables="observations-wd")
-write_cdm_tables(params, windQC.wind_speed, tables="observations-ws")
 
 # CHECKOUT --------------------------------------------------------------------
 logging.info("Saving json quicklook")

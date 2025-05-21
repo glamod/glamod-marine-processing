@@ -36,7 +36,9 @@ classifiers = [
 version = "7.1.0"
 dependencies = [
   "cdm_reader_mapper",
-  "simplejson"
+  "simplejson",
+  "cf_xarray",
+  "xclim"
 ]
 
 [project.optional-dependencies]

@@ -15,8 +15,11 @@ from datetime import datetime
 
 import numpy as np
 
-from . import CalcHums, qc
+from . import CalcHums
+from . import icoads_identify as ii
+from . import qc
 from . import spherical_geometry as sph
+from . import time_control
 from . import track_check as tc
 from . import trackqc as tqc
 
@@ -524,7 +527,7 @@ class MarineReport:
         updated if any of the time variables are changed.
         """
         if self.getvar("YR") is not None:
-            mlen = qc.get_month_lengths(self.getvar("YR"))
+            mlen = time_control.get_month_lengths(self.getvar("YR"))
             if (
                 self.getvar("MO") is not None
                 and self.getvar("HR") is not None
@@ -556,7 +559,7 @@ class MarineReport:
         """
         distance = sph.sphere_distance(self.lat(), self.lon(), other.lat(), other.lon())
 
-        timediff = qc.time_difference(
+        timediff = time_control.time_difference(
             other.getvar("YR"),
             other.getvar("MO"),
             other.getvar("DY"),
@@ -2137,7 +2140,7 @@ class Voyage:
         if numobs == 0:
             return
 
-        if qc.id_is_generic(self.getvar(0, "ID"), self.getvar(0, "YR")):
+        if ii.id_is_generic(self.getvar(0, "ID"), self.getvar(0, "YR")):
             for i in range(0, numobs):
                 self.set_qc(i, "POS", "iquam_track", 0)
             return
@@ -2213,7 +2216,7 @@ class Voyage:
 
         # Generic ids and buoys get a free pass on the track check
         if (
-            qc.id_is_generic(self.getvar(0, "ID"), self.getvar(0, "YR"))
+            ii.id_is_generic(self.getvar(0, "ID"), self.getvar(0, "YR"))
             or self.getvar(0, "PT") == 6
             or self.getvar(0, "PT") == 7
         ):

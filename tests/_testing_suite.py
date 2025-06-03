@@ -8,6 +8,8 @@ from _settings import get_settings
 from cdm_reader_mapper import read_tables
 from cdm_reader_mapper.common.getting_files import load_file
 
+cache_dir = ".pytest_cache"
+
 add_data = {
     "level1c": _load_data.load_noc_anc_info,
     "level1d": _load_data.load_pub47,
@@ -36,21 +38,25 @@ def _obs_testing(dataset, level, capsys):
             expected = expected.drop(_settings.drops[level]).reset_index(drop=True)
         return expected
 
+    cache_dir_t = f"{cache_dir}/T{level}"
+    cache_dir_e = f"{cache_dir}/E{level}"
+    cache_dir_t_r = f"{cache_dir}/T{level}/release_8.0"
+
     _settings = get_settings(dataset)
     tables = _settings.which_tables[level]
     if add_data.get(level) is not None:
         add_data[level](
-            cache_dir=f"./T{level}/release_8.0",
+            cache_dir=cache_dir_t_r,
         )
 
-    _load_data.load_input(dataset, level, _settings)
+    _load_data.load_input(dataset, level, _settings, cache_dir_t)
 
     s = (
         "obs_suite "
         f"-l {level} "
         f"-d {dataset} "
-        f"-data_dir ./T{level} "
-        f"-work_dir ./T{level} "
+        f"-data_dir {cache_dir_t} "
+        f"-work_dir {cache_dir_t} "
         f"-sp {_settings.pattern[level]} "
         f"-p_id subset "
         f"-year_i {_settings.year_init} "
@@ -63,7 +69,7 @@ def _obs_testing(dataset, level, capsys):
     captured = capsys.readouterr()
     assert captured.out == ""
 
-    result_dir = f"./T{level}/release_8.0/{dataset}/{level}/{_settings.process_list}"
+    result_dir = f"{cache_dir_t_r}/{dataset}/{level}/{_settings.process_list}"
 
     if _settings.pattern_out.get(level):
         results = pd.read_csv(
@@ -78,12 +84,12 @@ def _obs_testing(dataset, level, capsys):
     for table_name in tables:
         load_file(
             f"{_settings.input_dir}/cdm_tables/{table_name}-{_settings.cdm}.psv",
-            cache_dir=f"./E{level}/{dataset}/{level}/{_settings.deck}",
+            cache_dir=f"{cache_dir_e}/{dataset}/{level}/{_settings.deck}",
             within_drs=False,
         )
 
     expected = read_tables(
-        f"./E{level}/{dataset}/{level}/{_settings.deck}", cdm_subset=tables
+        os.path.join(cache_dir_e, dataset, level, _settings.deck), cdm_subset=tables
     )
     expected = manipulate_expected(expected.data, level)
 

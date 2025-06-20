@@ -5,7 +5,16 @@ from __future__ import annotations
 import numpy as np
 from netCDF4 import Dataset
 
-from . import qc
+from .interpolation import bilinear_interp
+from .location_control import (
+    fill_missing_vals,
+    get_four_surrounding_points,
+    lat_to_yindex,
+    lon_to_xindex,
+    mds_lat_to_yindex,
+    mds_lon_to_xindex,
+)
+from .time_control import day_in_year, get_month_lengths, which_pentad
 
 
 class Climatology:
@@ -101,9 +110,9 @@ class Climatology:
         if self.n == 1:
             tindex = 0
         if self.n == 73:
-            tindex = qc.which_pentad(month, day) - 1
+            tindex = which_pentad(month, day) - 1
         if self.n == 365:
-            tindex = qc.day_in_year(month, day) - 1
+            tindex = day_in_year(month, day) - 1
 
         return tindex
 
@@ -117,8 +126,8 @@ class Climatology:
         :type lon: float
         :rtype: float
         """
-        yindex = qc.mds_lat_to_yindex(lat, res=0.05)
-        xindex = qc.mds_lon_to_xindex(lon, res=0.05)
+        yindex = mds_lat_to_yindex(lat, res=0.05)
+        xindex = mds_lon_to_xindex(lon, res=0.05)
         tindex = 0
 
         result = self.field[tindex, yindex, xindex]
@@ -155,12 +164,12 @@ class Climatology:
             return
         if month < 1 or month > 12:
             return
-        ml = qc.get_month_lengths(2004)
+        ml = get_month_lengths(2004)
         if day < 1 or day > ml[month - 1]:
             return
 
-        yindex = qc.mds_lat_to_yindex(lat)
-        xindex = qc.mds_lon_to_xindex(lon)
+        yindex = mds_lat_to_yindex(lat, res=1.0)
+        xindex = mds_lon_to_xindex(lon, res=1.0)
         tindex = self.get_tindex(month, day)
 
         result = self.field[tindex, yindex, xindex]
@@ -196,12 +205,12 @@ class Climatology:
             return
         if month < 1 or month > 12:
             return None
-        ml = qc.get_month_lengths(2004)
+        ml = get_month_lengths(2004)
         if day < 1 or day > ml[month - 1]:
             return None
 
-        yindex = qc.lat_to_yindex(lat, self.res)
-        xindex = qc.lon_to_xindex(lon, self.res)
+        yindex = lat_to_yindex(lat, self.res)
+        xindex = lon_to_xindex(lon, self.res)
         tindex = self.get_tindex(month, day)
 
         result = self.field[tindex, yindex, xindex]
@@ -250,7 +259,7 @@ class Climatology:
         if pert1 is None and pert2 is None and pert3 is None and pert4 is None:
             return None
 
-        x1, x2, y1, y2 = qc.get_four_surrounding_points(lat, lon, 1)
+        x1, x2, y1, y2 = get_four_surrounding_points(lat, lon, 1)
 
         try:
             q11 = self.get_value(y1, x1, mo, dy)
@@ -280,8 +289,8 @@ class Climatology:
         if q21 is not None:
             q21 = float(q21)
 
-        q11, q12, q21, q22 = qc.fill_missing_vals(q11, q12, q21, q22)
+        q11, q12, q21, q22 = fill_missing_vals(q11, q12, q21, q22)
 
-        x1, x2, y1, y2 = qc.get_four_surrounding_points(lat, lon, 0)
+        x1, x2, y1, y2 = get_four_surrounding_points(lat, lon, 0)
 
-        return qc.bilinear_interp(x1, x2, y1, y2, lon, lat, q11, q12, q21, q22)
+        return bilinear_interp(x1, x2, y1, y2, lon, lat, q11, q12, q21, q22)

@@ -15,7 +15,8 @@ from datetime import datetime
 
 import numpy as np
 
-from . import CalcHums, qc
+from . import CalcHums
+from . import next_level_qc as qc
 from . import spherical_geometry as sph
 from . import track_check as tc
 from . import trackqc as tqc
@@ -2407,7 +2408,7 @@ class Voyage:
         if sort:
             self.sort()
         try:
-            tqc.aground_check(
+            tqc.do_aground_check(
                 self.reps,
                 parameters["smooth_win"],
                 parameters["min_win_period"],
@@ -2436,7 +2437,7 @@ class Voyage:
         if sort:
             self.sort()
         try:
-            tqc.new_aground_check(
+            tqc.do_new_aground_check(
                 self.reps, parameters["smooth_win"], parameters["min_win_period"]
             )
         except AssertionError as error:
@@ -2462,7 +2463,7 @@ class Voyage:
         if sort:
             self.sort()
         try:
-            tqc.speed_check(
+            tqc.do_speed_check(
                 self.reps,
                 parameters["speed_limit"],
                 parameters["min_win_period"],
@@ -2493,7 +2494,7 @@ class Voyage:
         if sort:
             self.sort()
         try:
-            tqc.new_speed_check(
+            tqc.do_new_speed_check(
                 self.reps,
                 iquam_parameters,
                 parameters["speed_limit"],
@@ -2523,7 +2524,7 @@ class Voyage:
         if sort:
             self.sort()
         try:
-            tqc.sst_tail_check(
+            tqc.do_sst_tail_check(
                 self.reps,
                 parameters["long_win_len"],
                 parameters["long_err_std_n"],
@@ -2558,7 +2559,7 @@ class Voyage:
         if sort:
             self.sort()
         try:
-            tqc.sst_biased_noisy_check(
+            tqc.do_sst_biased_noisy_check(
                 self.reps,
                 parameters["n_eval"],
                 parameters["bias_lim"],

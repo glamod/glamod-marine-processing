@@ -206,11 +206,23 @@ class Options:
             is_flag=True,
             help="Run job scripts interactively in parallel. This is mainly for BASTION machine.",
         )
+        self.parallel_tasks = click.option(
+            "-parallel_task",
+            "--parallel_tasks",
+            is_flag=True,
+            help="Run tasks per job script interactively in parallel. This is mainly for BASTION machine.",
+        )
         self.n_max_jobs = click.option(
             "-n_max",
             "--n_max_jobs",
             default="12",
             help="Maximum number of jobs running in parallel. Use only with parallel_jobs.",
+        )
+        self.nohup = click.option(
+            "-nohup",
+            "--nohup",
+            is_flag=True,
+            help="Use nohup to run job scripts in the background",
         )
         self.level = click.option(
             "-l",

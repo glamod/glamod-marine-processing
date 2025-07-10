@@ -35,6 +35,8 @@ from __future__ import annotations
 
 import numpy as np
 
+from .auxiliary import isvalid
+
 
 def vap(td, t, p, roundit=True):
     """
@@ -80,8 +82,8 @@ def vap(td, t, p, roundit=True):
     e = 12.3
 
     """
-    if td is None or t is None or p is None:
-        return None
+    if not isvalid(td) or not isvalid(t) or not isvalid(p):
+        return np.nan
 
     # Calculate pseudo-e assuming wet bulb to calculate a
     # pseudo-wet bulb (see wb below)
@@ -185,8 +187,8 @@ def sh(td, t, p, roundit=True):
     sh = 7.6
 
     """
-    if td is None or t is None or p is None:
-        return None
+    if not isvalid(td) or not isvalid(t) or not isvalid(p):
+        return np.nan
 
     # Calculate pseudo-e assuming wet bulb to
     # calculate a pseudo-wet bulb (see wb below)
@@ -296,8 +298,8 @@ def rh(td, t, p, roundit=True):
     rh = 72.0
 
     """
-    if td is None or t is None or p is None:
-        return None
+    if not isvalid(td) or not isvalid(t) or not isvalid(p):
+        return np.nan
 
     # Calculate pseudo-e assuming wet bulb to calculate a
     # pseudo-wet bulb (see wb below)
@@ -386,8 +388,8 @@ def wb(td, t, p, roundit=True):
     wb = 12.2
 
     """
-    if td is None or t is None or p is None:
-        return None
+    if not isvalid(td) or not isvalid(t) or not isvalid(p):
+        return np.nan
 
     # Calculate pseudo-e assuming wet bulb to calculate a pseudo-wet bulb (see wb below)
     f = 1 + (7.0 * (10 ** (-4.0))) + ((3.46 * (10 ** (-6.0))) * p)
@@ -444,8 +446,8 @@ def dpd(td, t, roundit=True):
     dpd = 5.0
 
     """
-    if td is None or t is None:
-        return None
+    if not isvalid(td) or not isvalid(t):
+        return np.nan
 
     dp = t - td
 

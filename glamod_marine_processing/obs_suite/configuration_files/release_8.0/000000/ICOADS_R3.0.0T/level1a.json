@@ -1,36 +1,1144 @@
 {
-  "release": "release_2.0",
-  "update": "000000",
-  "dataset": "ICOADS_R3.0.0T",
-  "config": {
-    "data_model": "imma1",
-    "read_sections": [
-      "core",
-      "c1",
-      "c98"
-    ],
-    "filter_reports_by": {
-      "c1.PT": [
-        "0",
-        "1",
-        "2",
-        "3",
-        "4",
-        "5"
-      ]
-    },
-    "cdm_map": "icoads_r3000"
+  "process_list_file": "source_deck_list.txt",
+  "release_periods_file": "source_deck_periods.json",
+  "job_memo_mb": 16000,
+  "job_time_hr": "01",
+  "job_time_min": "30",
+  "read_sections": [
+    "core",
+    "c1",
+    "c98"
+  ],
+  "filter_reports_by": {
+    "c1.PT": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5"
+    ]
   },
-  "job_config": {
-    "data_level": "level1a",
-    "source_level": "level0",
-    "source_file_ext": "imma",
-    "source_filename_prefix": "",
-    "source_filename_suffix": "",
-    "environment": "0",
-    "job_memo_mb": 4000,
-    "job_time_hr": "01",
-    "job_time_min": "30",
-    "script_name": "level1a.py"
+  "001-110": {
+    "data_model": "icoads_r300_d110"
+  },
+  "001-116": {
+    "data_model": "icoads_r300_d116"
+  },
+  "001-117": {
+    "data_model": "icoads_r300_d117"
+  },
+  "001-118": {
+    "data_model": "icoads_r300_d118"
+  },
+  "001-119": {
+    "data_model": "icoads_r300_d119"
+  },
+  "001-128": {
+    "data_model": "icoads_r300_d128"
+  },
+  "001-150": {
+    "data_model": "icoads_r300_d150"
+  },
+  "001-151": {
+    "data_model": "icoads_r300_d151"
+  },
+  "001-152": {
+    "data_model": "icoads_r300_d152"
+  },
+  "001-184": {
+    "data_model": "icoads_r300_d184"
+  },
+  "001-185": {
+    "data_model": "icoads_r300_d185"
+  },
+  "001-186": {
+    "data_model": "icoads_r300_d186"
+  },
+  "001-187": {
+    "data_model": "icoads_r300_d187"
+  },
+  "001-188": {
+    "data_model": "icoads_r300_d188"
+  },
+  "001-189": {
+    "data_model": "icoads_r300_d189"
+  },
+  "001-192": {
+    "data_model": "icoads_r300_d192"
+  },
+  "001-193": {
+    "data_model": "icoads_r300_d193"
+  },
+  "001-194": {
+    "data_model": "icoads_r300_d194"
+  },
+  "001-195": {
+    "data_model": "icoads_r300_d195"
+  },
+  "001-196": {
+    "data_model": "icoads_r300_d196"
+  },
+  "001-197": {
+    "data_model": "icoads_r300_d197"
+  },
+  "001-281": {
+    "data_model": "icoads_r300_d281"
+  },
+  "001-901": {
+    "data_model": "icoads_r300_d901"
+  },
+  "001-902": {
+    "data_model": "icoads_r300_d902"
+  },
+  "001-999": {
+    "data_model": "icoads_r300_d999"
+  },
+  "002-150": {
+    "data_model": "icoads_r300_d150"
+  },
+  "002-151": {
+    "data_model": "icoads_r300_d151"
+  },
+  "002-152": {
+    "data_model": "icoads_r300_d152"
+  },
+  "002-192": {
+    "data_model": "icoads_r300_d192"
+  },
+  "003-155": {
+    "data_model": "icoads_r300_d155"
+  },
+  "004-156": {
+    "data_model": "icoads_r300_d156"
+  },
+  "005-116": {
+    "data_model": "icoads_r300_d116"
+  },
+  "005-118": {
+    "data_model": "icoads_r300_d118"
+  },
+  "005-119": {
+    "data_model": "icoads_r300_d119"
+  },
+  "005-128": {
+    "data_model": "icoads_r300_d128"
+  },
+  "005-184": {
+    "data_model": "icoads_r300_d184"
+  },
+  "005-189": {
+    "data_model": "icoads_r300_d189"
+  },
+  "005-192": {
+    "data_model": "icoads_r300_d192"
+  },
+  "005-193": {
+    "data_model": "icoads_r300_d193"
+  },
+  "005-194": {
+    "data_model": "icoads_r300_d194"
+  },
+  "005-195": {
+    "data_model": "icoads_r300_d195"
+  },
+  "005-901": {
+    "data_model": "icoads_r300_d901"
+  },
+  "006-119": {
+    "data_model": "icoads_r300_d119"
+  },
+  "006-128": {
+    "data_model": "icoads_r300_d128"
+  },
+  "006-184": {
+    "data_model": "icoads_r300_d184"
+  },
+  "006-189": {
+    "data_model": "icoads_r300_d189"
+  },
+  "006-192": {
+    "data_model": "icoads_r300_d192"
+  },
+  "006-193": {
+    "data_model": "icoads_r300_d193"
+  },
+  "006-194": {
+    "data_model": "icoads_r300_d194"
+  },
+  "006-195": {
+    "data_model": "icoads_r300_d195"
+  },
+  "006-666": {
+    "data_model": "icoads_r300_d666"
+  },
+  "007-555": {
+    "data_model": "icoads_r300_d555"
+  },
+  "008-116": {
+    "data_model": "icoads_r300_d116"
+  },
+  "008-117": {
+    "data_model": "icoads_r300_d117"
+  },
+  "008-128": {
+    "data_model": "icoads_r300_d128"
+  },
+  "008-184": {
+    "data_model": "icoads_r300_d184"
+  },
+  "008-194": {
+    "data_model": "icoads_r300_d194"
+  },
+  "009-116": {
+    "data_model": "icoads_r300_d116"
+  },
+  "009-117": {
+    "data_model": "icoads_r300_d117"
+  },
+  "009-119": {
+    "data_model": "icoads_r300_d119"
+  },
+  "009-128": {
+    "data_model": "icoads_r300_d128"
+  },
+  "010-110": {
+    "data_model": "icoads_r300_d110"
+  },
+  "010-116": {
+    "data_model": "icoads_r300_d116"
+  },
+  "010-118": {
+    "data_model": "icoads_r300_d118"
+  },
+  "010-119": {
+    "data_model": "icoads_r300_d119"
+  },
+  "010-128": {
+    "data_model": "icoads_r300_d128"
+  },
+  "010-184": {
+    "data_model": "icoads_r300_d184"
+  },
+  "010-192": {
+    "data_model": "icoads_r300_d192"
+  },
+  "010-193": {
+    "data_model": "icoads_r300_d193"
+  },
+  "010-194": {
+    "data_model": "icoads_r300_d194"
+  },
+  "010-195": {
+    "data_model": "icoads_r300_d195"
+  },
+  "010-197": {
+    "data_model": "icoads_r300_d197"
+  },
+  "013-897": {
+    "data_model": "icoads_r300_d897"
+  },
+  "014-898": {
+    "data_model": "icoads_r300_d898"
+  },
+  "015-899": {
+    "data_model": "icoads_r300_d899"
+  },
+  "016-900": {
+    "data_model": "icoads_r300_d900"
+  },
+  "017-926": {
+    "data_model": "icoads_r300_d926"
+  },
+  "018-186": {
+    "data_model": "icoads_r300_d186"
+  },
+  "018-555": {
+    "data_model": "icoads_r300_d555"
+  },
+  "018-849": {
+    "data_model": "icoads_r300_d849"
+  },
+  "018-850": {
+    "data_model": "icoads_r300_d850"
+  },
+  "018-876": {
+    "data_model": "icoads_r300_d876"
+  },
+  "018-877": {
+    "data_model": "icoads_r300_d877"
+  },
+  "018-878": {
+    "data_model": "icoads_r300_d878"
+  },
+  "018-879": {
+    "data_model": "icoads_r300_d879"
+  },
+  "018-880": {
+    "data_model": "icoads_r300_d880"
+  },
+  "018-881": {
+    "data_model": "icoads_r300_d881"
+  },
+  "018-882": {
+    "data_model": "icoads_r300_d882"
+  },
+  "018-888": {
+    "data_model": "icoads_r300_d888"
+  },
+  "018-889": {
+    "data_model": "icoads_r300_d889"
+  },
+  "018-927": {
+    "data_model": "icoads_r300_d927"
+  },
+  "018-928": {
+    "data_model": "icoads_r300_d928"
+  },
+  "019-926": {
+    "data_model": "icoads_r300_d926"
+  },
+  "020-128": {
+    "data_model": "icoads_r300_d128"
+  },
+  "021-900": {
+    "data_model": "icoads_r300_d900"
+  },
+  "022-889": {
+    "data_model": "icoads_r300_d889"
+  },
+  "022-927": {
+    "data_model": "icoads_r300_d927"
+  },
+  "023-888": {
+    "data_model": "icoads_r300_d888"
+  },
+  "023-889": {
+    "data_model": "icoads_r300_d889"
+  },
+  "023-927": {
+    "data_model": "icoads_r300_d927"
+  },
+  "024-143": {
+    "data_model": "icoads_r300_d143"
+  },
+  "024-876": {
+    "data_model": "icoads_r300_d876"
+  },
+  "024-877": {
+    "data_model": "icoads_r300_d877"
+  },
+  "024-878": {
+    "data_model": "icoads_r300_d878"
+  },
+  "024-879": {
+    "data_model": "icoads_r300_d879"
+  },
+  "024-880": {
+    "data_model": "icoads_r300_d880"
+  },
+  "024-881": {
+    "data_model": "icoads_r300_d881"
+  },
+  "024-882": {
+    "data_model": "icoads_r300_d882"
+  },
+  "025-889": {
+    "data_model": "icoads_r300_d889"
+  },
+  "025-926": {
+    "data_model": "icoads_r300_d926"
+  },
+  "025-927": {
+    "data_model": "icoads_r300_d927"
+  },
+  "026-927": {
+    "data_model": "icoads_r300_d927"
+  },
+  "027-889": {
+    "data_model": "icoads_r300_d889"
+  },
+  "027-926": {
+    "data_model": "icoads_r300_d926"
+  },
+  "027-927": {
+    "data_model": "icoads_r300_d927"
+  },
+  "028-889": {
+    "data_model": "icoads_r300_d889"
+  },
+  "028-926": {
+    "data_model": "icoads_r300_d926"
+  },
+  "028-927": {
+    "data_model": "icoads_r300_d927"
+  },
+  "029-892": {
+    "data_model": "icoads_r300_d892"
+  },
+  "029-893": {
+    "data_model": "icoads_r300_d893"
+  },
+  "029-896": {
+    "data_model": "icoads_r300_d896"
+  },
+  "030-889": {
+    "data_model": "icoads_r300_d889"
+  },
+  "030-926": {
+    "data_model": "icoads_r300_d926"
+  },
+  "030-927": {
+    "data_model": "icoads_r300_d927"
+  },
+  "032-874": {
+    "data_model": "icoads_r300_d874"
+  },
+  "032-889": {
+    "data_model": "icoads_r300_d889"
+  },
+  "032-892": {
+    "data_model": "icoads_r300_d892"
+  },
+  "032-893": {
+    "data_model": "icoads_r300_d893"
+  },
+  "032-896": {
+    "data_model": "icoads_r300_d896"
+  },
+  "032-926": {
+    "data_model": "icoads_r300_d926"
+  },
+  "032-927": {
+    "data_model": "icoads_r300_d927"
+  },
+  "033-889": {
+    "data_model": "icoads_r300_d889"
+  },
+  "033-892": {
+    "data_model": "icoads_r300_d892"
+  },
+  "033-893": {
+    "data_model": "icoads_r300_d893"
+  },
+  "033-896": {
+    "data_model": "icoads_r300_d896"
+  },
+  "033-926": {
+    "data_model": "icoads_r300_d926"
+  },
+  "033-927": {
+    "data_model": "icoads_r300_d927"
+  },
+  "034-889": {
+    "data_model": "icoads_r300_d889"
+  },
+  "034-926": {
+    "data_model": "icoads_r300_d926"
+  },
+  "034-927": {
+    "data_model": "icoads_r300_d927"
+  },
+  "035-889": {
+    "data_model": "icoads_r300_d889"
+  },
+  "035-926": {
+    "data_model": "icoads_r300_d926"
+  },
+  "035-927": {
+    "data_model": "icoads_r300_d927"
+  },
+  "036-889": {
+    "data_model": "icoads_r300_d889"
+  },
+  "036-926": {
+    "data_model": "icoads_r300_d926"
+  },
+  "036-927": {
+    "data_model": "icoads_r300_d927"
+  },
+  "037-926": {
+    "data_model": "icoads_r300_d926"
+  },
+  "037-927": {
+    "data_model": "icoads_r300_d927"
+  },
+  "038-889": {
+    "data_model": "icoads_r300_d889"
+  },
+  "038-926": {
+    "data_model": "icoads_r300_d926"
+  },
+  "038-927": {
+    "data_model": "icoads_r300_d927"
+  },
+  "039-889": {
+    "data_model": "icoads_r300_d889"
+  },
+  "039-926": {
+    "data_model": "icoads_r300_d926"
+  },
+  "039-927": {
+    "data_model": "icoads_r300_d927"
+  },
+  "040-889": {
+    "data_model": "icoads_r300_d889"
+  },
+  "040-926": {
+    "data_model": "icoads_r300_d926"
+  },
+  "040-927": {
+    "data_model": "icoads_r300_d927"
+  },
+  "041-926": {
+    "data_model": "icoads_r300_d926"
+  },
+  "041-927": {
+    "data_model": "icoads_r300_d927"
+  },
+  "042-889": {
+    "data_model": "icoads_r300_d889"
+  },
+  "042-927": {
+    "data_model": "icoads_r300_d927"
+  },
+  "043-889": {
+    "data_model": "icoads_r300_d889"
+  },
+  "043-927": {
+    "data_model": "icoads_r300_d927"
+  },
+  "044-874": {
+    "data_model": "icoads_r300_d874"
+  },
+  "044-927": {
+    "data_model": "icoads_r300_d927"
+  },
+  "045-874": {
+    "data_model": "icoads_r300_d874"
+  },
+  "046-732": {
+    "data_model": "icoads_r300_d732"
+  },
+  "046-926": {
+    "data_model": "icoads_r300_d926"
+  },
+  "047-926": {
+    "data_model": "icoads_r300_d926"
+  },
+  "050-883": {
+    "data_model": "icoads_r300_d883"
+  },
+  "051-733": {
+    "data_model": "icoads_r300_d733"
+  },
+  "052-733": {
+    "data_model": "icoads_r300_d733"
+  },
+  "053-749": {
+    "data_model": "icoads_r300_d749"
+  },
+  "056-731": {
+    "data_model": "icoads_r300_d731"
+  },
+  "057-732": {
+    "data_model": "icoads_r300_d732"
+  },
+  "059-926": {
+    "data_model": "icoads_r300_d926"
+  },
+  "060-926": {
+    "data_model": "icoads_r300_d926"
+  },
+  "063-714": {
+    "data_model": "icoads_r300_d714"
+  },
+  "064-735": {
+    "data_model": "icoads_r300_d735"
+  },
+  "065-735": {
+    "data_model": "icoads_r300_d735"
+  },
+  "066-144": {
+    "data_model": "icoads_r300_d144"
+  },
+  "067-145": {
+    "data_model": "icoads_r300_d145"
+  },
+  "068-734": {
+    "data_model": "icoads_r300_d734"
+  },
+  "069-701": {
+    "data_model": "icoads_r300_d701"
+  },
+  "069-701_form_type1": {
+    "data_model": "icoads_r300_d701_form_type1"
+  },
+  "069-701_form_type2": {
+    "data_model": "icoads_r300_d701_form_type2"
+  },
+  "070-667": {
+    "data_model": "icoads_r300_d667"
+  },
+  "071-667": {
+    "data_model": "icoads_r300_d667"
+  },
+  "072-926": {
+    "data_model": "icoads_r300_d926"
+  },
+  "077-892": {
+    "data_model": "icoads_r300_d892"
+  },
+  "077-893": {
+    "data_model": "icoads_r300_d893"
+  },
+  "077-896": {
+    "data_model": "icoads_r300_d896"
+  },
+  "078-927": {
+    "data_model": "icoads_r300_d927"
+  },
+  "079-888": {
+    "data_model": "icoads_r300_d888"
+  },
+  "084-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "084-706": {
+    "data_model": "icoads_r300_d706"
+  },
+  "084-707": {
+    "data_model": "icoads_r300_d707"
+  },
+  "085-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "085-706": {
+    "data_model": "icoads_r300_d706"
+  },
+  "085-707": {
+    "data_model": "icoads_r300_d707"
+  },
+  "090-201": {
+    "data_model": "icoads_r300_d201"
+  },
+  "090-202": {
+    "data_model": "icoads_r300_d202"
+  },
+  "090-203": {
+    "data_model": "icoads_r300_d203"
+  },
+  "090-204": {
+    "data_model": "icoads_r300_d204"
+  },
+  "090-205": {
+    "data_model": "icoads_r300_d205"
+  },
+  "090-206": {
+    "data_model": "icoads_r300_d206"
+  },
+  "090-207": {
+    "data_model": "icoads_r300_d207"
+  },
+  "090-209": {
+    "data_model": "icoads_r300_d209"
+  },
+  "090-211": {
+    "data_model": "icoads_r300_d211"
+  },
+  "090-213": {
+    "data_model": "icoads_r300_d213"
+  },
+  "090-215": {
+    "data_model": "icoads_r300_d215"
+  },
+  "090-218": {
+    "data_model": "icoads_r300_d218"
+  },
+  "090-221": {
+    "data_model": "icoads_r300_d221"
+  },
+  "090-223": {
+    "data_model": "icoads_r300_d223"
+  },
+  "090-224": {
+    "data_model": "icoads_r300_d224"
+  },
+  "090-226": {
+    "data_model": "icoads_r300_d226"
+  },
+  "090-227": {
+    "data_model": "icoads_r300_d227"
+  },
+  "090-229": {
+    "data_model": "icoads_r300_d229"
+  },
+  "090-230": {
+    "data_model": "icoads_r300_d230"
+  },
+  "090-233": {
+    "data_model": "icoads_r300_d233"
+  },
+  "090-234": {
+    "data_model": "icoads_r300_d234"
+  },
+  "090-239": {
+    "data_model": "icoads_r300_d239"
+  },
+  "090-254": {
+    "data_model": "icoads_r300_d254"
+  },
+  "090-255": {
+    "data_model": "icoads_r300_d255"
+  },
+  "091-201": {
+    "data_model": "icoads_r300_d201"
+  },
+  "091-202": {
+    "data_model": "icoads_r300_d202"
+  },
+  "091-203": {
+    "data_model": "icoads_r300_d203"
+  },
+  "091-204": {
+    "data_model": "icoads_r300_d204"
+  },
+  "091-205": {
+    "data_model": "icoads_r300_d205"
+  },
+  "091-206": {
+    "data_model": "icoads_r300_d206"
+  },
+  "091-207": {
+    "data_model": "icoads_r300_d207"
+  },
+  "091-209": {
+    "data_model": "icoads_r300_d209"
+  },
+  "091-210": {
+    "data_model": "icoads_r300_d210"
+  },
+  "091-211": {
+    "data_model": "icoads_r300_d211"
+  },
+  "091-213": {
+    "data_model": "icoads_r300_d213"
+  },
+  "091-214": {
+    "data_model": "icoads_r300_d214"
+  },
+  "091-215": {
+    "data_model": "icoads_r300_d215"
+  },
+  "091-221": {
+    "data_model": "icoads_r300_d221"
+  },
+  "092-201": {
+    "data_model": "icoads_r300_d201"
+  },
+  "092-254": {
+    "data_model": "icoads_r300_d254"
+  },
+  "093-216": {
+    "data_model": "icoads_r300_d216"
+  },
+  "095-762": {
+    "data_model": "icoads_r300_d762"
+  },
+  "096-702": {
+    "data_model": "icoads_r300_d702"
+  },
+  "098-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "098-706": {
+    "data_model": "icoads_r300_d706"
+  },
+  "098-707": {
+    "data_model": "icoads_r300_d707"
+  },
+  "100-792": {
+    "data_model": "icoads_r300_d792"
+  },
+  "100-793": {
+    "data_model": "icoads_r300_d793"
+  },
+  "100-794": {
+    "data_model": "icoads_r300_d794"
+  },
+  "103-792": {
+    "data_model": "icoads_r300_d792"
+  },
+  "103-793": {
+    "data_model": "icoads_r300_d793"
+  },
+  "103-794": {
+    "data_model": "icoads_r300_d794"
+  },
+  "103-795": {
+    "data_model": "icoads_r300_d795"
+  },
+  "103-797": {
+    "data_model": "icoads_r300_d797"
+  },
+  "109-708": {
+    "data_model": "icoads_r300_d708"
+  },
+  "110-700": {
+    "data_model": "icoads_r300_d700"
+  },
+  "111-874": {
+    "data_model": "icoads_r300_d874"
+  },
+  "112-926": {
+    "data_model": "icoads_r300_d926"
+  },
+  "113-927": {
+    "data_model": "icoads_r300_d927"
+  },
+  "114-992": {
+    "data_model": "icoads_r300_d992"
+  },
+  "114-993": {
+    "data_model": "icoads_r300_d993"
+  },
+  "114-994": {
+    "data_model": "icoads_r300_d994"
+  },
+  "114-995": {
+    "data_model": "icoads_r300_d995"
+  },
+  "115-761": {
+    "data_model": "icoads_r300_d761"
+  },
+  "116-761": {
+    "data_model": "icoads_r300_d761"
+  },
+  "117-144": {
+    "data_model": "icoads_r300_d144"
+  },
+  "118-144": {
+    "data_model": "icoads_r300_d144"
+  },
+  "119-144": {
+    "data_model": "icoads_r300_d144"
+  },
+  "120-144": {
+    "data_model": "icoads_r300_d144"
+  },
+  "121-883": {
+    "data_model": "icoads_r300_d883"
+  },
+  "122-883": {
+    "data_model": "icoads_r300_d883"
+  },
+  "125-704": {
+    "data_model": "icoads_r300_d704"
+  },
+  "126-245": {
+    "data_model": "icoads_r300_d245"
+  },
+  "127-246": {
+    "data_model": "icoads_r300_d246"
+  },
+  "128-734": {
+    "data_model": "icoads_r300_d734"
+  },
+  "129-736": {
+    "data_model": "icoads_r300_d736"
+  },
+  "130-740": {
+    "data_model": "icoads_r300_d740"
+  },
+  "131-740": {
+    "data_model": "icoads_r300_d740"
+  },
+  "133-730": {
+    "data_model": "icoads_r300_d730"
+  },
+  "134-720": {
+    "data_model": "icoads_r300_d720"
+  },
+  "135-720": {
+    "data_model": "icoads_r300_d720"
+  },
+  "136-720": {
+    "data_model": "icoads_r300_d720"
+  },
+  "137-780": {
+    "data_model": "icoads_r300_d780"
+  },
+  "138-247": {
+    "data_model": "icoads_r300_d247"
+  },
+  "139-715": {
+    "data_model": "icoads_r300_d715"
+  },
+  "140-117": {
+    "data_model": "icoads_r300_d117"
+  },
+  "141-117": {
+    "data_model": "icoads_r300_d117"
+  },
+  "142-117": {
+    "data_model": "icoads_r300_d117"
+  },
+  "143-781": {
+    "data_model": "icoads_r300_d781"
+  },
+  "144-703": {
+    "data_model": "icoads_r300_d703"
+  },
+  "146-700": {
+    "data_model": "icoads_r300_d700"
+  },
+  "147-700": {
+    "data_model": "icoads_r300_d700"
+  },
+  "148-700": {
+    "data_model": "icoads_r300_d700"
+  },
+  "149-700": {
+    "data_model": "icoads_r300_d700"
+  },
+  "150-700": {
+    "data_model": "icoads_r300_d700"
+  },
+  "151-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "152-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "153-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "154-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "155-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "156-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "157-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "158-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "159-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "160-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "161-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "162-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "163-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "164-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "165-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "166-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "167-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "168-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "169-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "170-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "171-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "172-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "173-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "174-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "175-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "176-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "177-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "178-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "179-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "180-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "181-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "182-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "183-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "184-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "185-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "186-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "187-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "188-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "189-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "190-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "191-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "192-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "193-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "194-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "195-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "196-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "197-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "198-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "199-705": {
+    "data_model": "icoads_r300_d705"
+  },
+  "blacklisting": {
+    "header": {
+      "func": "do_blacklist",
+      "params": {
+        "id": [
+          "core",
+          "ID"
+        ],
+        "deck": [
+          "c1",
+          "DCK"
+        ],
+        "year": [
+          "core",
+          "YR"
+        ],
+        "month": [
+          "core",
+          "MO"
+        ],
+        "latitude": [
+          "core",
+          "LAT"
+        ],
+        "longitude": [
+          "core",
+          "LON"
+        ],
+        "platform_type": [
+          "c1",
+          "PT"
+        ]
+      }
+    },
+    "observations-dpt": {
+      "func": "do_humidity_blacklist",
+      "params": {
+        "platform_type": [
+          "c1",
+          "PT"
+        ]
+      }
+    },
+    "observations-at": {
+      "func": "do_mat_blacklist",
+      "params": {
+        "deck": [
+          "c1",
+          "DCK"
+        ],
+        "year": [
+          "core",
+          "YR"
+        ],
+        "latitude": [
+          "core",
+          "LAT"
+        ],
+        "longitude": [
+          "core",
+          "LON"
+        ],
+        "platform_type": [
+          "c1",
+          "PT"
+        ]
+      }
+    },
+    "observations-ws": {
+      "func": "do_wind_blacklist",
+      "params": {
+        "deck": [
+          "c1",
+          "DCK"
+        ]
+      }
+    }
+  },
+  "generic_ids": {
+    "params": {
+      "inid": [
+        "core",
+        "ID"
+      ],
+      "inyear": [
+        "core",
+        "YR"
+      ]
+    }
   }
 }

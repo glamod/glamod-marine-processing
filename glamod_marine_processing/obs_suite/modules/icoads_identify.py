@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from ._utilities import auto_cast
+
 
 def is_in_valid_list(
     value: str | int | float, valid_list: str | int | float | list
@@ -27,6 +29,7 @@ def is_in_valid_list(
     return False
 
 
+@auto_cast
 def is_buoy(platform_type: int, valid_list: list | int = [6, 7]) -> int:
     """
     Identify whether report is from a moored or drifting buoy based on ICOADS platform type PT.
@@ -46,6 +49,7 @@ def is_buoy(platform_type: int, valid_list: list | int = [6, 7]) -> int:
     return is_in_valid_list(platform_type, valid_list)
 
 
+@auto_cast
 def is_drifter(platform_type: int, valid_list: list | int = 7) -> int:
     """
     Identify whether report is from a drifting buoy based on ICOADS platform type PT.
@@ -66,6 +70,7 @@ def is_drifter(platform_type: int, valid_list: list | int = 7) -> int:
     return is_in_valid_list(platform_type, valid_list)
 
 
+@auto_cast
 def is_ship(
     platform_type: int, valid_list: list | int = [0, 1, 2, 3, 4, 5, 10, 11, 12, 17]
 ) -> int:
@@ -88,6 +93,7 @@ def is_ship(
     return is_in_valid_list(platform_type, valid_list)
 
 
+@auto_cast
 def is_deck(dck: int, valid_list: list | int = 780) -> int:
     """
     Identify obs that are from ICOADS Deck 780 which consists of obs from WOD.
@@ -108,6 +114,7 @@ def is_deck(dck: int, valid_list: list | int = 780) -> int:
     return is_in_valid_list(dck, valid_list)
 
 
+@auto_cast
 def id_is_generic(inid: str, inyear: int) -> bool:
     """Test to see if an ID is one of the generic IDs.
 
@@ -130,42 +137,38 @@ def id_is_generic(inid: str, inyear: int) -> bool:
     generic_ids = [
         None,
         "",
-        " ",
-        "1        ",
-        "58       ",
-        "RIGG     ",
-        "     RIGG",
-        "SHIP     ",
-        "ship     ",
-        "     SHIP",
-        "PLAT     ",
-        "     PLAT",
-        "         ",
-        "0120     ",
-        "0204     ",
-        "0205     ",
-        "0206     ",
-        "0207     ",
-        "0208     ",
-        "0209     ",
-        "MASKST   ",
-        "MASKSTID ",
-        "MASK     ",
-        "XXXX     ",
-        "/////    ",
+        "1",
+        "58",
+        "RIGG",
+        "SHIP",
+        "ship",
+        "PLAT",
+        "0120",
+        "0204",
+        "0205",
+        "0206",
+        "0207",
+        "0208",
+        "0209",
+        "MASKST",
+        "MASKSTID",
+        "MASK",
+        "XXXX",
+        "/////",
     ]
 
     if 1921 <= inyear <= 1941:
-        generic_ids.append("2        ")
-        generic_ids.append("00002    ")
+        generic_ids.append("2")
+        generic_ids.append("00002")
 
     if 1930 <= inyear <= 1937:
-        generic_ids.append("3        ")
+        generic_ids.append("3")
 
     if 1934 <= inyear <= 1954:
-        generic_ids.append("7        ")
-        generic_ids.append("00007    ")
+        generic_ids.append("7")
+        generic_ids.append("00007")
 
-    if inid in generic_ids:
-        return True
-    return False
+    result = False
+    if inid.strip() in generic_ids:
+        result = True
+    return result

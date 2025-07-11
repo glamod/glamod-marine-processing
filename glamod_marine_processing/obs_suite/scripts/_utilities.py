@@ -28,6 +28,7 @@ add_data_paths = {
 }
 
 chunksizes = {
+    "C-RAID_1.1": None,
     "C-RAID_1.2": None,
     "ICOADS_R3.0.2T": 200000,
     "ICOADS_R3.0.0T": 200000,

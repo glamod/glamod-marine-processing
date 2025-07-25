@@ -5,7 +5,13 @@ from __future__ import annotations
 import numpy as np
 from netCDF4 import Dataset
 
-from . import qc
+from .location_control import (
+    lat_to_yindex,
+    lon_to_xindex,
+    mds_lat_to_yindex,
+    mds_lon_to_xindex,
+)
+from .time_control import day_in_year, get_month_lengths, which_pentad
 
 
 class Climatology:
@@ -74,7 +80,7 @@ class Climatology:
                 field = np.flip(field, 1)
 
             # if the longitudes start near zero then roll the array along its longitude axis
-            if longitudes[0] > 0.0 and longitudes[0] < 1.0:
+            if 0.0 < longitudes[0] < 1.0:
                 lon_len = field.shape[2]
                 field = np.roll(field, lon_len // 2, axis=2)
 
@@ -101,9 +107,9 @@ class Climatology:
         if self.n == 1:
             tindex = 0
         if self.n == 73:
-            tindex = qc.which_pentad(month, day) - 1
+            tindex = which_pentad(month, day) - 1
         if self.n == 365:
-            tindex = qc.day_in_year(month, day) - 1
+            tindex = day_in_year(month, day) - 1
 
         return tindex
 
@@ -117,13 +123,13 @@ class Climatology:
         :type lon: float
         :rtype: float
         """
-        yindex = qc.mds_lat_to_yindex(lat, res=0.05)
-        xindex = qc.mds_lon_to_xindex(lon, res=0.05)
+        yindex = mds_lat_to_yindex(lat, res=0.05)
+        xindex = mds_lon_to_xindex(lon, res=0.05)
         tindex = 0
 
         result = self.field[tindex, yindex, xindex]
 
-        if type(result) is np.float64 or type(result) is np.float32:
+        if isinstance(result, np.float64) or isinstance(result, np.float32):
             pass
         else:
             if result.mask:
@@ -155,17 +161,17 @@ class Climatology:
             return
         if month < 1 or month > 12:
             return
-        ml = qc.get_month_lengths(2004)
+        ml = get_month_lengths(2004)
         if day < 1 or day > ml[month - 1]:
             return
 
-        yindex = qc.mds_lat_to_yindex(lat)
-        xindex = qc.mds_lon_to_xindex(lon)
+        yindex = mds_lat_to_yindex(lat, res=1.0)
+        xindex = mds_lon_to_xindex(lon, res=1.0)
         tindex = self.get_tindex(month, day)
 
         result = self.field[tindex, yindex, xindex]
 
-        if type(result) is np.float64 or type(result) is np.float32:
+        if isinstance(result, np.float64) or isinstance(result, np.float32):
             pass
         else:
             if result.mask:
@@ -196,17 +202,25 @@ class Climatology:
             return
         if month < 1 or month > 12:
             return None
-        ml = qc.get_month_lengths(2004)
+        ml = get_month_lengths(2004)
         if day < 1 or day > ml[month - 1]:
             return None
+        if lat is None:
+            return
+        if lat < -180 or lat > 180:
+            return
+        if lon is None:
+            return
+        if lon < -80 or lon > 90:
+            return
 
-        yindex = qc.lat_to_yindex(lat, self.res)
-        xindex = qc.lon_to_xindex(lon, self.res)
+        yindex = lat_to_yindex(lat, self.res)
+        xindex = lon_to_xindex(lon, self.res)
         tindex = self.get_tindex(month, day)
 
         result = self.field[tindex, yindex, xindex]
 
-        if type(result) is np.float64 or type(result) is np.float32:
+        if isinstance(result, np.float64) or isinstance(result, np.float32):
             pass
         else:
             if result.mask:
@@ -215,73 +229,3 @@ class Climatology:
                 result = result.data[0]
 
         return result
-
-    def get_interpolated_value(self, lat, lon, mo, dy):
-        """
-        Get the value from the climatology interpolated to the precise location of
-        the observation in time and space
-
-        :param lat: latitude of location to extract value from in degrees
-        :param lon: longitude of location to extract value from in degrees
-        :param mo: month for which the value is required
-        :param dy: day for which the value is required
-        :type lat: float
-        :type lon: float
-        :type mo: integer
-        :type dy: integer
-        :return: climatology value at specified location and time.
-        :rtype: float
-        """
-        # check that the lat lon point falls in a grid cell with a value or on
-        # the border of one
-        if lat + 0.001 < 90:
-            pert1 = self.get_value(lat + 0.001, lon + 0.001, mo, dy)
-            pert2 = self.get_value(lat + 0.001, lon - 0.001, mo, dy)
-        else:
-            pert1 = None
-            pert2 = None
-        if lat - 0.001 > -90:
-            pert3 = self.get_value(lat - 0.001, lon + 0.001, mo, dy)
-            pert4 = self.get_value(lat - 0.001, lon - 0.001, mo, dy)
-        else:
-            pert3 = None
-            pert4 = None
-
-        if pert1 is None and pert2 is None and pert3 is None and pert4 is None:
-            return None
-
-        x1, x2, y1, y2 = qc.get_four_surrounding_points(lat, lon, 1)
-
-        try:
-            q11 = self.get_value(y1, x1, mo, dy)
-        except Exception:
-            q11 = None
-        if q11 is not None:
-            q11 = float(q11)
-
-        try:
-            q22 = self.get_value(y2, x2, mo, dy)
-        except Exception:
-            q22 = None
-        if q22 is not None:
-            q22 = float(q22)
-
-        try:
-            q12 = self.get_value(y2, x1, mo, dy)
-        except Exception:
-            q12 = None
-        if q12 is not None:
-            q12 = float(q12)
-
-        try:
-            q21 = self.get_value(y1, x2, mo, dy)
-        except Exception:
-            q21 = None
-        if q21 is not None:
-            q21 = float(q21)
-
-        q11, q12, q21, q22 = qc.fill_missing_vals(q11, q12, q21, q22)
-
-        x1, x2, y1, y2 = qc.get_four_surrounding_points(lat, lon, 0)
-
-        return qc.bilinear_interp(x1, x2, y1, y2, lon, lat, q11, q12, q21, q22)

@@ -114,6 +114,11 @@ def test_is_deck_valid_list():
         ("2        ", 1941, True),
         ("3        ", 1935, True),
         ("7        ", 1950, True),
+        ("       ", 1899, True),
+        ("", 1899, True),
+        ("       ", 1899, True),
+        ("        ", 1899, True),
+        ("         ", 1899, True),
     ],
 )
 def test_id_is_generic(in_id, year, expected):

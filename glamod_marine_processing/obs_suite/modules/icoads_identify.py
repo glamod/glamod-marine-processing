@@ -129,43 +129,42 @@ def id_is_generic(inid: str, inyear: int) -> bool:
     """
     generic_ids = [
         None,
+        "         ",
+        "        ",
         "",
         " ",
-        "1        ",
-        "58       ",
-        "RIGG     ",
-        "     RIGG",
-        "SHIP     ",
-        "ship     ",
-        "     SHIP",
-        "PLAT     ",
-        "     PLAT",
-        "         ",
-        "0120     ",
-        "0204     ",
-        "0205     ",
-        "0206     ",
-        "0207     ",
-        "0208     ",
-        "0209     ",
-        "MASKST   ",
-        "MASKSTID ",
-        "MASK     ",
-        "XXXX     ",
-        "/////    ",
+        "1",
+        "58",
+        "RIGG",
+        "SHIP",
+        "ship",
+        "PLAT",
+        "0120",
+        "0204",
+        "0205",
+        "0206",
+        "0207",
+        "0208",
+        "0209",
+        "MASKST",
+        "MASKSTID",
+        "MASK",
+        "XXXX",
+        "/////",
     ]
 
     if 1921 <= inyear <= 1941:
-        generic_ids.append("2        ")
-        generic_ids.append("00002    ")
+        generic_ids.append("2")
+        generic_ids.append("00002")
 
     if 1930 <= inyear <= 1937:
-        generic_ids.append("3        ")
+        generic_ids.append("3")
 
     if 1934 <= inyear <= 1954:
-        generic_ids.append("7        ")
-        generic_ids.append("00007    ")
+        generic_ids.append("7")
+        generic_ids.append("00007")
 
-    if inid in generic_ids:
-        return True
-    return False
+    result = False
+    if inid.strip() in generic_ids:
+        result = True
+    return result

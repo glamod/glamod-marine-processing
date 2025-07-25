@@ -21,6 +21,8 @@ Contributors
 
 * Joseph Siddons <joseph.siddons@noc.ac.uk> `@jtsiddons <https://github.com/jtsiddons>`_
 
+* John Kennedy <jjk.code.otter@gmail.com> `@jjk-code-otter <https://github.com/jjk-code-otter>`_
+
 Previous Contributors
 ---------------------
 
@@ -33,3 +35,7 @@ Previous Contributors
 * Beatriz Recinos
 
 * Andreas Wernecke
+
+* Chris Atkinson
+
+* Kate Willett

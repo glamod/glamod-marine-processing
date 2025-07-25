@@ -34,12 +34,12 @@ def load_metoffice_qc(**kwargs):
         load_file(f"metoffice_qc/base/2022/01/{qc_file}", **kwargs)
 
 
-def load_input(dataset, level, settings):
+def load_input(dataset, level, settings, cache_dir):
     """Load level input data data from cdm-testdata."""
     p_level = settings.prev_level[level]
     leveli = settings.level_input[level]
     process_list = settings.process_list
-    cache_dir = f"./T{level}/{leveli}/{dataset}/{p_level}/{process_list}"
+    cache_dir = f"{cache_dir}/{leveli}/{dataset}/{p_level}/{process_list}"
     if level == "level1a":
         load_level0(cache_dir, settings)
     else:

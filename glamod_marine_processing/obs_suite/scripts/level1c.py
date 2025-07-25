@@ -285,6 +285,7 @@ mask_df.loc[callsigns, field] = (
 # Then the rest according to general validation rules
 logging.info("Applying general id validation")
 mask_df.loc[nocallsigns, field] = validate_id(table_db[field].loc[callsigns])
+mask_df = mask_df.astype(bool)
 
 # And now set back to True all that the linkage provided
 # Instead, read in the header history field and check if it contains

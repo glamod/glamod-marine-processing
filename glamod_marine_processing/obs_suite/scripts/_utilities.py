@@ -28,6 +28,7 @@ add_data_paths = {
 }
 
 chunksizes = {
+    "C-RAID_1.1": None,
     "C-RAID_1.2": None,
     "ICOADS_R3.0.2T": 200000,
     "ICOADS_R3.0.0T": 200000,
@@ -219,7 +220,7 @@ def write_cdm_tables(params, df, tables=[], outname=None, **kwargs):
         try:
             df = df[table]
         except KeyError:
-            logging.info(f"{table} not found.")
+            logging.info(f"Table {table} is already selected.")
         df.to_csv(
             outname,
             index=False,

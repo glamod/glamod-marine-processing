@@ -98,23 +98,16 @@ process_options = [
     "histories",
     "duplicates",
     "drop_qualities",
+    "delete_no_obs",
 ]
 params = script_setup(process_options, sys.argv)
-
 cor_ext = ".txt.gz"
-if params.corrections_mod.get("noc_version"):
-    params.correction_version = params.corrections_mod.get("noc_version")
 
-if params.corrections_mod.get("noc_path"):
-    L1b_main_corrections = params.corrections_mod.get("noc_path")
-    params.correction_version = "not_null"
-else:
-    L1b_main_corrections = os.path.join(
-        params.data_path, params.release, "NOC_corrections", params.correction_version
-    )
-
-logging.info(f"Setting corrections path to {L1b_main_corrections}")
 if params.correction_version != "null":
+    L1b_main_corrections = os.path.join(
+        params.data_path, "datasets", "NOC_corrections", params.correction_version
+    )
+    logging.info(f"Setting corrections path to {L1b_main_corrections}")
     paths_exist(L1b_main_corrections)
 
 ql_dict = {table: {} for table in properties.cdm_tables}
@@ -129,10 +122,19 @@ try:
 except AttributeError:  # for python < 3.11
     history_tstmp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
-for table in properties.cdm_tables:
-    datetime_col = (
-        ("header", "report_timestamp") if table == "header" else (table, "date_time")
-    )
+tables = properties.cdm_tables
+obs_tables = [table for table in tables if table != "header"]
+if params.delete_no_obs is True:
+    report_ids = pd.Series()
+    for table in obs_tables:
+        db_ = read_cdm_tables(params, table)
+        if not db_.empty:
+            db_.data = db_[table]
+            report_ids = pd.concat([report_ids, db_["report_id"]], ignore_index=True)
+    report_ids = report_ids.drop_duplicates().reset_index(drop=True)
+
+for table in tables:
+    datetime_col = "report_timestamp" if table == "header" else "date_time"
     logging.info(params.prev_level_path)
     logging.info(params.prev_fileID)
     logging.info(table)
@@ -143,104 +145,114 @@ for table in properties.cdm_tables:
         ql_dict[table]["read"] = 0
         continue
 
-    table_db.set_index((table, "report_id"), inplace=True, drop=False)
-    ql_dict[table]["read"] = len(table_db)
+    table_db.data = table_db[table]
+    table_db.set_index("report_id", inplace=True, drop=False)
+    if table == "header" and params.delete_no_obs is True:
+        logging.info("Delete header information without any observations.")
+        table_db.data = table_db[table_db.index.isin(report_ids)]
 
+    ql_dict[table]["read"] = len(table_db)
     if params.corrections is None:
         table_corrections = {}
     else:
-        table_corrections = params.corrections.get(table)
+        if "observations" in table and "observations" in params.corrections.keys():
+            table_corrections = params.corrections.get("observations")
+        else:
+            table_corrections = params.corrections.get(table)
+
     if len(table_corrections) == 0:
         logging.warning(f"No corrections defined for table {table}")
 
     ql_dict[table]["date leak out"] = {}
     ql_dict[table]["corrections"] = {}
 
-    for correction, element in table_corrections.items():
-        ql_dict[table]["corrections"][element] = {"applied": 1, "number": 0}
-        logging.info(f"Applying corrections for element {element}")
-        columns = ["report_id", element, element + ".isChange"]
-        if params.correction_version != "null":
+    for column, elements in table_corrections.items():
+        directories = elements.get("dir")
+        position = elements.get("pos")
+        changed = elements.get("changed")
+
+        ql_dict[table]["corrections"][column] = {"applied": 1, "number": 0}
+        logging.info(f"Applying corrections for element {column}")
+        columns = ["report_id", column]
+        usecols = [0, position]
+        if isinstance(changed, int):
+            columns.append("changed")
+            usecols.append(changed)
+
+        if isinstance(directories, str):
+            directories = [directories]
+
+        correction_df = pd.DataFrame()
+        for directory in directories:
             cor_path = os.path.join(
-                L1b_main_corrections, correction, params.fileID_date + cor_ext
+                L1b_main_corrections, directory, params.fileID_date + cor_ext
             )
             if not os.path.isfile(cor_path):
                 logging.warning(f"Correction file {cor_path} not found")
                 continue
 
-            correction_df = pd.read_csv(
+            cor_df = pd.read_csv(
                 cor_path,
                 delimiter=delimiter,
                 dtype="object",
                 header=None,
-                usecols=[0, 1, 2],
+                usecols=usecols,
                 names=columns,
                 quotechar=None,
                 quoting=3,
             )
-        else:
-            correction_df = pd.Dataframe(columns=columns)
-        if not correction_df.empty:
-            correction_df.set_index("report_id", inplace=True, drop=False)
-            try:
-                correction_df = correction_df.loc[table_db.index].drop_duplicates()
-            except Exception:
-                logging.warning(
-                    logging.warning(f"No {correction} corrections matching")
-                )
-                continue
+            correction_df = pd.concat([correction_df, cor_df], ignore_index=True)
 
-        ql_dict[table]["corrections"][element]["applied"] = 0
-        table_db[element + ".former"] = table_db[element]
-        table_db[element + ".isChange"] = ""
-        table_db.replace_columns(
-            correction_df,
-            pivot_c="report_id",
-            rep_c=[element, element + ".isChange"],
-            inplace=True,
-        )
-        table_db.set_index(
-            "report_id", inplace=True, drop=False
-        )  # because it gets reindexed in every replacement....
-        replaced = table_db[element + ".isChange"] == isChange
+        if correction_df.empty:
+            logging.warning(f"No {column} corrections found.")
+            continue
 
-        not_replaced = table_db[element + ".isChange"] != isChange
-        table_db[element].loc[not_replaced] = table_db[element + ".former"].loc[
-            not_replaced
-        ]
-        ql_dict[table]["corrections"][element]["number"] = len(np.where(replaced)[0])
-        logging.info(
-            "No. of corrections applied {}".format(
-                ql_dict[table]["corrections"][element]["number"]
-            )
-        )
+        if changed is None:
+            correction_df["changed"] = isChange
+
+        correction_df.set_index("report_id", inplace=True, drop=False)
+        correction_df = correction_df[correction_df.index.isin(table_db.index)]
+        correction_df = correction_df.drop_duplicates()
+        correction_df = correction_df[correction_df["changed"] == isChange]
+        change_indexes = correction_df.index
+
+        if correction_df.empty:
+            logging.warning(f"No {column} corrections found.")
+            continue
+
+        correction_df = correction_df.replace("{}", None)
+        ql_dict[table]["corrections"][column]["applied"] = 0
+        table_db[column].loc[change_indexes] = correction_df[column]
+
+        number = len(correction_df)
+        ql_dict[table]["corrections"][column]["number"] = number
+        logging.info(f"No. of corrections applied {number}")
         # THIS IS A DIRTY THING TO DO, BUT WILL LEAVE IT AS IT IS FOR THIS RUN:
         # we only keep a lineage of the changes applied to the header
         # (some of these are shared with obs tables like position and datetime, although the name for the cdm element might not be the same....)
-        if table == "header":
-            table_db["history"].loc[replaced] = (
-                table_db["history"].loc[replaced]
-                + f"; {history_tstmp}. {params.histories.get(correction)}"
+        hist_add = params.histories.get(column)
+        if table == "header" and hist_add:
+            table_db["history"].loc[change_indexes] = (
+                table_db["history"].loc[change_indexes]
+                + f"; {history_tstmp}. {hist_add}"
             )
-
-        table_db.drop(element + ".former", axis=1)
-        table_db.drop(element + ".isChange", axis=1)
 
     if table_db.empty:
         logging.warning("Empty table {table}")
         continue
+
     # Track duplicate status
     if table == "header":
         ql_dict["duplicates"] = {}
         if params.correction_version == "null":
             if params.drop_qualities:
-                table_db[table] = drop_qualities(table_db[table], params.drop_qualities)
+                table_db.data = drop_qualities(table_db, params.drop_qualities)
             table_db.duplicate_check(**params.duplicates, inplace=True)
             table_db.flag_duplicates(inplace=True)
-        contains_info = table_db[(table, "duplicate_status")] != dupNotEval
+        contains_info = table_db["duplicate_status"] != dupNotEval
         logging.info("Logging duplicate status info")
         if len(np.where(contains_info)[0]) > 0:
-            counts = table_db[(table, "duplicate_status")].value_counts()
+            counts = table_db["duplicate_status"].value_counts()
             for k in counts.index:
                 ql_dict["duplicates"][k] = int(
                     counts.loc[k]
@@ -254,10 +266,10 @@ for table in properties.cdm_tables:
     if table_db.empty:
         continue
 
-    table_db[(table, "monthly_period")] = pd.to_datetime(
+    table_db.data["monthly_period"] = pd.to_datetime(
         table_db[datetime_col], errors="coerce", utc=True
     ).dt.to_period("M")
-    monthly_periods = list(table_db[(table, "monthly_period")].dropna().unique())
+    monthly_periods = list(table_db["monthly_period"].dropna().unique())
     source_mon_period = pd.Period(
         year=int(params.year), month=int(params.month), freq="M"
     )
@@ -266,8 +278,8 @@ for table in properties.cdm_tables:
     # the date in the file
     if len(monthly_periods) == 0:
         monthly_periods.append(source_mon_period)
-    table_db[(table, "monthly_period")].fillna(source_mon_period, inplace=True)
-    table_db.set_index((table, "monthly_period"), inplace=True, drop=True)
+    table_db["monthly_period"].fillna(source_mon_period, inplace=True)
+    table_db.set_index("monthly_period", inplace=True, drop=True)
     len_db = len(table_db)
     if source_mon_period in monthly_periods:
         logging.info(

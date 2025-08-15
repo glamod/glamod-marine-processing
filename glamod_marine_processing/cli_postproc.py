@@ -35,6 +35,7 @@ def post_proc_cli(
     data_directory,
     additional_directories,
     available_date_information,
+    parallel_jobs,
     overwrite,
 ):
     """Entry point for the pre-processing command line interface."""
@@ -63,6 +64,7 @@ def post_proc_cli(
         update=update,
         prev_deck_list=prev_deck_list,
         date_avail=available_date_information,
+        parallel=parallel_jobs,
         overwrite=overwrite,
     )
 

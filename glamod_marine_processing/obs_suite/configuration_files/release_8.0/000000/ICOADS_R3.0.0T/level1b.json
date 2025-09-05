@@ -1,73 +1,73 @@
 {
-  "release": "release_2.0",
-  "update": "000000",
-  "dataset": "ICOADS_R3.0.0T",
-  "config": {
-    "correction_version": "v1x2019",
-    "corrections": {
-      "header": {
-        "id": "primary_station_id",
-        "timestamp": "report_timestamp",
-        "duplicate_flags": "duplicate_status",
-        "duplicates": "duplicates",
-        "longitude": "longitude",
-        "latitude": "latitude"
+  "process_list_file": "source_deck_list.txt",
+  "release_periods_file": "source_deck_periods.json",
+  "job_memo_mb": 4000,
+  "job_time_hr": "01",
+  "job_time_min": "00",
+  "correction_version": "v1x2021",
+  "corrections": {
+    "header": {
+      "primary_station_id": {
+        "dir": "CHANGED_IDS_UPDATE2",
+        "pos": 1,
+        "changed": 2
       },
-      "observations-at": {
-        "timestamp": "date_time",
-        "longitude": "longitude",
-        "latitude": "latitude"
+      "report_timestamp": {
+        "dir": "CHANGED_DATEPOS",
+        "pos": 1,
+        "changed": 2
       },
-      "observations-sst": {
-        "timestamp": "date_time",
-        "longitude": "longitude",
-        "latitude": "latitude"
+      "duplicate_status": {
+        "dir": [
+          "DUP_FILES",
+          "DUP_FILES_ID"
+        ],
+        "pos": 1,
+        "changed": null
       },
-      "observations-dpt": {
-        "timestamp": "date_time",
-        "longitude": "longitude",
-        "latitude": "latitude"
+      "duplicates": {
+        "dir": [
+          "DUP_FILES",
+          "DUP_FILES_ID"
+        ],
+        "pos": 2,
+        "changed": null
       },
-      "observations-wbt": {
-        "timestamp": "date_time",
-        "longitude": "longitude",
-        "latitude": "latitude"
+      "longitude": {
+        "dir": "CHANGED_DATEPOS",
+        "pos": 5,
+        "changed": 6
       },
-      "observations-wd": {
-        "timestamp": "date_time",
-        "longitude": "longitude",
-        "latitude": "latitude"
-      },
-      "observations-ws": {
-        "timestamp": "date_time",
-        "longitude": "longitude",
-        "latitude": "latitude"
-      },
-      "observations-slp": {
-        "timestamp": "date_time",
-        "longitude": "longitude",
-        "latitude": "latitude"
+      "latitude": {
+        "dir": "CHANGED_DATEPOS",
+        "pos": 3,
+        "changed": 4
       }
     },
-    "histories": {
-      "id": "Corrected primary_station_id",
-      "timestamp": "Corrected report_timestamp and date_time",
-      "longitude": "Corrected longitude",
-      "latitude": "Corrected latitude",
-      "duplicate_flags": "Added duplicate information - flag",
-      "duplicates": "Added duplicate information - duplicates"
+    "observations": {
+      "date_time": {
+        "dir": "CHANGED_DATEPOS",
+        "pos": 1,
+        "changed": 2
+      },
+      "longitude": {
+        "dir": "CHANGED_DATEPOS",
+        "pos": 5,
+        "changed": 6
+      },
+      "latitude": {
+        "dir": "CHANGED_DATEPOS",
+        "pos": 3,
+        "changed": 4
+      }
     }
   },
-  "job_config": {
-    "data_level": "level1b",
-    "source_level": "level1a",
-    "source_file_ext": "psv",
-    "source_filename_prefix": "header",
-    "source_filename_suffix": "",
-    "environment": "0",
-    "job_memo_mb": 4000,
-    "job_time_hr": "01",
-    "job_time_min": "30",
-    "script_name": "level1b.py"
+  "histories": {
+    "primary_station_id": "Corrected primary_station_id",
+    "report_timestamp": "Corrected report_timestamp and date_time",
+    "longitude": "Corrected longitude",
+    "latitude": "Corrected latitude",
+    "duplicate_status": "Added duplicate information - flag",
+    "duplicates": "Added duplicate information - duplicates"
   }
 }

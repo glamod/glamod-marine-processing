@@ -70,12 +70,14 @@ from cdm_reader_mapper.cdm_mapper import properties
 from cdm_reader_mapper.common import inspect, pandas_TextParser_hdlr
 
 import glamod_marine_processing.obs_suite.modules.blacklisting as blacklist_funcs
+from glamod_marine_processing.obs_suite.modules.icoads_identify import id_is_generic
 
 reload(logging)  # This is to override potential previous config of logging
 
-blck_flag = 9
-header_blck_column = "report_quality"
-observations_blck_column = "quality_flag"
+blck_flag = 6
+gnrc_flag = 88
+header_quality_column = "report_quality"
+observations_quality_column = "quality_flag"
 
 
 # FUNCTIONS -------------------------------------------------------------------
@@ -105,6 +107,7 @@ process_options = [
     "read_sections",
     "filter_reports_by",
     "blacklisting",
+    "generic_ids",
 ]
 params = script_setup(process_options, sys.argv)
 
@@ -128,9 +131,7 @@ read_kwargs = {
 }
 
 data_in = read_mdf(L0_filename, **read_kwargs)
-
 io_dict["read"] = {"total": len(data_in)}
-
 # 2. PT fixing, filtering and invalid rejectionselect_true
 # 2.1. Fix platform type
 
@@ -149,22 +150,23 @@ if params.filter_reports_by:
     # 3.1. Select by report_filters options
     for k, v in params.filter_reports_by.items():
         io_dict["not_selected"][k] = {}
-        logging.info("Selecting {} values: {}".format(k, ",".join(v)))
+        v_str = [str(v_) for v_ in v]
+        logging.info("Selecting {} values: {}".format(k, ", ".join(v_str)))
         filter_location = tuple(k.split("."))
         col = filter_location[0] if len(filter_location) == 1 else filter_location
-        values = v
-        selection = {col: values}
+        selection = {col: v}
         data_in, data_excl = data_in.split_by_column_entries(selection)
         data_excluded["data"][k] = data_excl.data
         io_dict["not_selected"][k]["total"] = len(data_excl)
         if io_dict["not_selected"][k]["total"] > 0:
-            if data_in.dtype.get(col, {}) in ["str", "object", "key"]:
-                io_dict["not_selected"][k].update(data_excl.unique(columns=col))
+            if data_in.dtypes.get(col, {}) in ["str", "object", "key"]:
+                unique_dict = data_excl.unique(columns=col)
+                io_dict["not_selected"][k].update(unique_dict[col])
     io_dict["not_selected"]["total"] = sum(
         [v.get("total") for k, v in io_dict["not_selected"].items()]
     )
-
 io_dict["pre_selected"] = {"total": len(data_in)}
+
 # 2.3. Keep track of invalid data
 # First create a global mask and count failure occurrences
 newmask_buffer = StringIO()
@@ -193,9 +195,7 @@ for data, mask in zipped:
 
 newmask_buffer.seek(0)
 if chunksize:
-    data_in.mask = pd.read_csv(
-        newmask_buffer, names=[x for x in mask], chunksize=chunksize
-    )
+    data_in.mask = pandas_TextParser_hdlr.restore(data_in.mask)
     data_in.data = pandas_TextParser_hdlr.restore(data_in.data)
 
 # Now see what fails
@@ -289,6 +289,35 @@ if params.blacklisting:
     if chunksize:
         data_in.data = pandas_TextParser_hdlr.restore(data_in.data)
 
+# 2.6. Flag data with generic ID
+gnrc_dict = {}
+if params.generic_ids:
+    logging.info("Flag data with generic ID")
+    if not chunksize:
+        data_in_data = [data_in.data]
+    else:
+        data_in_data = data_in.data
+
+    for data in data_in_data:
+        kwargs = {}
+        for param, columns in params.generic_ids["params"].items():
+            if isinstance(columns, list):
+                columns = tuple(columns)
+            kwargs[param] = columns
+        gnrc_mask = data.apply(
+            lambda row: id_is_generic(**{k: row[v] for k, v in kwargs.items()}), axis=1
+        ).reset_index(drop=True)
+        if "header" in gnrc_dict:
+            gnrc_dict["header"] = pd.concat(
+                [gnrc_dict["header"], gnrc_mask], ignore_index=True
+            )
+        else:
+            gnrc_dict["header"] = gnrc_mask
+
+    if chunksize:
+        data_in.data = pandas_TextParser_hdlr.restore(data_in.data)
+
+
 # 3. Map to common data model and output files
 if process:
     logging.info("Mapping to CDM")
@@ -296,13 +325,22 @@ if process:
     io_dict.update({table: {} for table in tables})
     logging.debug(f"Mapping attributes: {data_in.dtypes}")
     data_in.map_model(log_level="INFO", inplace=True)
+
+    for cdm_table, gnrc_mask in gnrc_dict.items():
+        if cdm_table == "header":
+            gnrc_column = (cdm_table, header_quality_column)
+        else:
+            gnrc_column = (cdm_table, observations_quality_column)
+        cond = data_in.data[gnrc_column].notna() & gnrc_dict[cdm_table]
+        data_in.data.loc[cond, gnrc_column] = gnrc_flag
+
     for cdm_table, blck_mask in blck_dict.items():
         if cdm_table == "header":
-            blck_column = (cdm_table, header_blck_column)
+            blck_column = (cdm_table, header_quality_column)
         else:
-            blck_column = (cdm_table, observations_blck_column)
+            blck_column = (cdm_table, observations_quality_column)
         cond = data_in.data[blck_column].notna() & (
-            blck_mask | (data_in.data[("header", header_blck_column)] == blck_flag)
+            blck_mask | (data_in.data[("header", header_quality_column)] == blck_flag)
         )
         data_in.data.loc[cond, blck_column] = blck_flag
 
@@ -313,7 +351,7 @@ if process:
     )
 
     for table in tables:
-        io_dict[table]["total"] = inspect.get_length(data_in.data[table])
+        io_dict[table]["total"] = len(data_in[table].dropna(how="all"))
 
 logging.info("Saving json quicklook")
 save_quicklook(params, io_dict, date_handler)

@@ -61,6 +61,7 @@ import sys
 from collections import Counter
 from importlib import reload
 
+import numpy as np
 import pandas as pd
 from _utilities import (
     date_handler,
@@ -103,8 +104,8 @@ def process_table(table_db, table):
         table_db.set_index("report_id", inplace=True, drop=False)
         header_ = header_db.copy()
         # by this point, header_df has its index set to report_id, hopefully ;)
-        table_db = table_db[table_db.index.isin(header_.index)]
-        table_db["primary_station_id"] = header_["primary_station_id"].loc[
+        table_db.data = table_db[table_db.index.isin(header_.index)]
+        table_db.data["primary_station_id"] = header_["primary_station_id"].loc[
             table_db.index
         ]
 
@@ -130,7 +131,8 @@ def process_table(table_db, table):
             meta_table.columns = [x[1] for x in meta_table]
 
         meta_table.set_index("primary_station_id", drop=False, inplace=True)
-        table_db.update(meta_table[~meta_table.index.duplicated()])
+        meta_table = meta_table.replace("null", np.nan)
+        table_db.data.update(meta_table[~meta_table.index.duplicated()])
 
         updated_locs = [x for x in table_db.index if x in meta_table.index]
         ql_dict[table]["updated"] = len(updated_locs)
@@ -142,8 +144,10 @@ def process_table(table_db, table):
                     k: v for k, v in Counter(missing_ids).items()
                 }
             history_add = ";{}. {}".format(history_tstmp, "metadata fix")
-            locs = table_db["primary_station_id"].isin(updated_locs)
-            table_db["history"].loc[locs] = table_db["history"].loc[locs] + history_add
+            locs = table_db.data["primary_station_id"].isin(updated_locs)
+            table_db.data["history"].loc[locs] = (
+                table_db.data["history"].loc[locs] + history_add
+            )
 
     write_cdm_tables(params, table_db, tables=table, columns=cdm_atts.get(table).keys())
 
@@ -164,6 +168,7 @@ logging.basicConfig(
 process_options = [
     "md_model",
     "md_subdir",
+    "md_version",
     "history_explain",
     "md_first_yr_avail",
     "md_last_yr_avail",
@@ -180,10 +185,10 @@ if md_avail:
         md_path = params.corrections_mod.get("pub47_path")
     else:
         md_path = os.path.join(
-            params.data_path, params.release, params.md_subdir, "monthly"
+            params.data_path, "datasets", params.md_subdir, params.md_version
         )
     logging.info(f"Setting MD path to {md_path}")
-    metadata_filename = os.path.join(md_path, f"pub47-{params.year}-{params.month}.csv")
+    metadata_filename = os.path.join(md_path, f"pub47_{params.year}_{params.month}.csv")
 
     if not os.path.isfile(metadata_filename):
         if int(params.year) > int(params.md_last_yr_avail) or int(params.year) < int(
@@ -258,7 +263,7 @@ if merge:
 process_table(header_db, "header")
 
 header_db.set_index("report_id", inplace=True, drop=False)
-# for obs
+
 for table in obs_tables:
     process_table(table, table)
 

@@ -10,6 +10,7 @@ import logging
 import os
 import sys
 
+import pandas as pd
 from cdm_reader_mapper import read_tables
 
 from glamod_marine_processing.utilities import save_simplejson
@@ -28,6 +29,7 @@ add_data_paths = {
 }
 
 chunksizes = {
+    "C-RAID_1.1": None,
     "C-RAID_1.2": None,
     "ICOADS_R3.0.2T": 200000,
     "ICOADS_R3.0.0T": 200000,
@@ -193,16 +195,17 @@ def save_quicklook(params, ql_dict, date_handler):
     )
 
 
-def read_cdm_tables(params, table):
+def read_cdm_tables(params, table, ifile=None):
     """Read CDM tables."""
-    # if isinstance(table, str):
-    #    table = [table]
-    return read_tables(
-        params.prev_level_path,
-        suffix=params.prev_fileID,
-        cdm_subset=table,
-        na_values="null",
-    )
+    kwargs = {
+        "cdm_subset": table,
+        "na_values": "null",
+    }
+    if ifile is None:
+        return read_tables(params.prev_level_path, suffix=params.prev_fileID, **kwargs)
+    db = read_tables(ifile, **kwargs)
+    db.data.columns = pd.MultiIndex.from_tuples([table, col] for col in db.data.columns)
+    return db
 
 
 def write_cdm_tables(params, df, tables=[], outname=None, **kwargs):
@@ -219,7 +222,7 @@ def write_cdm_tables(params, df, tables=[], outname=None, **kwargs):
         try:
             df = df[table]
         except KeyError:
-            logging.info(f"{table} not found.")
+            logging.info(f"Table {table} is already selected.")
         df.to_csv(
             outname,
             index=False,

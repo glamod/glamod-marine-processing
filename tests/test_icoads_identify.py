@@ -49,6 +49,16 @@ def test_is_buoy_valid_list():
             assert result is False
 
 
+def test_is_buoy_str():
+    for pt in range(0, 47):
+        pt = str(pt)
+        result = is_buoy(pt)
+        if pt in ["6", "7"]:
+            assert result is True
+        else:
+            assert result is False
+
+
 def test_is_drifter():
     for pt in range(0, 47):
         result = is_drifter(pt)
@@ -62,6 +72,16 @@ def test_is_drifter_valid_list():
     for pt in range(0, 47):
         result = is_drifter(pt, valid_list=[6, 8])
         if pt in [6, 8]:
+            assert result is True
+        else:
+            assert result is False
+
+
+def test_is_drifter_str():
+    for pt in range(0, 47):
+        pt = str(pt)
+        result = is_drifter(pt)
+        if pt == "7":
             assert result is True
         else:
             assert result is False
@@ -85,6 +105,16 @@ def test_is_ship_valid_list():
             assert result is False
 
 
+def test_is_ship_str():
+    for pt in range(0, 47):
+        pt = str(pt)
+        result = is_ship(pt)
+        if pt in ["0", "1", "2", "3", "4", "5", "10", "11", "12", "17"]:
+            assert result is True
+        else:
+            assert result is False
+
+
 def test_is_deck():
     for deck in range(1000):
         result = is_deck(deck)
@@ -103,6 +133,16 @@ def test_is_deck_valid_list():
             assert result is False
 
 
+def test_is_deck_str():
+    for deck in range(1000):
+        deck = str(deck)
+        result = is_deck(deck)
+        if deck == "780":
+            assert result is True
+        else:
+            assert result is False
+
+
 @pytest.mark.parametrize(
     "in_id, year, expected",
     [
@@ -114,6 +154,8 @@ def test_is_deck_valid_list():
         ("2        ", 1941, True),
         ("3        ", 1935, True),
         ("7        ", 1950, True),
+        ("QUALMS", "1999", False),
+        ("7        ", "1950", True),
         ("       ", 1899, True),
         ("", 1899, True),
         ("       ", 1899, True),

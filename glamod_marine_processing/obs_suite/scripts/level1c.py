@@ -152,14 +152,12 @@ def validate_id(idSeries):
 def read_table_files(table):
     """Read table files."""
     logging.info(f"Reading data from {table} table files")
-    table_df = pd.DataFrame()
-
     # First read the master file, if any, then append leaks
     # If no yyyy-mm master file, can still have reports from datetime leaks
     # On reading 'header' read null as NaN so that we can validate null ids as NaN easily
-    table_df = read_cdm_tables(params, table)
+    table_db = read_cdm_tables(params, table)
     try:
-        len(table_df)
+        len(table_db)
     except Exception:
         logging.warning(
             "Empty or non-existing master {} table. Attempting \
@@ -173,15 +171,17 @@ def read_table_files(table):
     if len(leak_files) > 0:
         for leak_file in leak_files:
             logging.info(f"Reading datetime leak file {leak_file}")
-            table_dfi = read_cdm_tables(params, table)
-            if len(table_dfi) == 0:
-                logging.error(f"Could not read leak file or is empty {leak_file}")
-                sys.exit(1)
-            leaks_in += len(table_dfi)
-            table_df = pd.concat([table_df, table_dfi], axis=0, sort=False)
-    if len(table_df) > 0:
+            table_dbi = read_cdm_tables(params, table, ifile=leak_file)
+            if len(table_dbi) == 0:
+                logging.warning(f"Could not read leak file or is empty {leak_file}")
+                continue
+            leaks_in += len(table_dbi)
+            table_db.data = pd.concat(
+                [table_db.data, table_dbi.data], axis=0, sort=False
+            )
+    if len(table_db) > 0:
         ql_dict[table] = {"leaks_in": leaks_in}
-    return table_df
+    return table_db
 
 
 def process_table(table_df, table):
@@ -221,13 +221,15 @@ logging.basicConfig(
     filename=None,
 )
 
-params = script_setup([], sys.argv)
-
-id_validation_path = os.path.join(
-    params.data_path, params.release, "NOC_ANC_INFO", "json_files"
-)
-
-paths_exist([id_validation_path, params.level_invalid_path])
+params = script_setup(["noc_version"], sys.argv)
+paths_exist(params.level_invalid_path)
+if params.noc_version:
+    id_validation_path = os.path.join(
+        params.data_path, "datasets", "NOC_ANC_INFO", params.noc_version
+    )
+    paths_exist(id_validation_path)
+else:
+    id_validation_path = ""
 
 ql_dict = {table: {} for table in properties.cdm_tables}
 
@@ -249,13 +251,13 @@ except AttributeError:  # for python < 3.11
 # in level1b resulted in a change in the month
 table = "header"
 table_db = read_table_files(table)
-columns = table_db.columns
-table_db.data = table_db[table]
 if table_db.empty:
     logging.error(f"No data could be read for file partition {params.fileID}")
     sys.exit(1)
 
+table_db.data = table_db[table]
 table_db.set_index("report_id", inplace=True, drop=False)
+
 # Initialize mask
 mask_df = pd.DataFrame(index=table_db.index, columns=validated + ["all"])
 mask_df[validated] = True
@@ -285,6 +287,7 @@ mask_df.loc[callsigns, field] = (
 # Then the rest according to general validation rules
 logging.info("Applying general id validation")
 mask_df.loc[nocallsigns, field] = validate_id(table_db[field].loc[callsigns])
+mask_df = mask_df.astype(bool)
 
 # And now set back to True all that the linkage provided
 # Instead, read in the header history field and check if it contains

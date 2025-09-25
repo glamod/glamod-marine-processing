@@ -1,7 +1,7 @@
 """
-=============================================
-Post-Processing Command Line Interface module
-=============================================
+=========================================
+Merge suite Command Line Interface module
+=========================================
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ from types import SimpleNamespace
 import click
 
 from .cli import CONTEXT_SETTINGS, Cli, add_options
-from .post_processing import post_processing
+from .merge import merge
 from .utilities import load_json, mkdir, read_txt
 
 
@@ -27,19 +27,20 @@ def open_deck_list_file(config_files_path, level_config_file):
 
 @click.command(context_settings=CONTEXT_SETTINGS)
 @add_options()
-def post_proc_cli(
+def merge_cli(
     machine,
+    level,
+    level_source,
     release,
     update,
     dataset,
     data_directory,
     additional_directories,
     available_date_information,
+    parallel_jobs,
     overwrite,
 ):
     """Entry point for the pre-processing command line interface."""
-    level = "level1b"
-    prev_level = "level1a"
     config = Cli(
         machine=machine,
         level=level,
@@ -52,17 +53,18 @@ def post_proc_cli(
     p = SimpleNamespace(**config["paths"])
 
     future_deck = open_deck_list_file(p.config_files_path, f"{level}.json")
-    prev_deck_list = open_deck_list_file(p.config_files_path, f"{prev_level}.json")
-    input_dir = os.path.join(p.data_directory, release, dataset, "level1a")
+    prev_deck_list = open_deck_list_file(p.config_files_path, f"{level_source}.json")
+    input_dir = os.path.join(p.data_directory, release, dataset, level_source)
     output_dir = os.path.join(input_dir, future_deck[0])
     mkdir(output_dir)
-    post_processing(
+    merge(
         idir=input_dir,
         odir=output_dir,
         release=release,
         update=update,
         prev_deck_list=prev_deck_list,
         date_avail=available_date_information,
+        parallel=parallel_jobs,
         overwrite=overwrite,
     )
 
@@ -70,11 +72,11 @@ def post_proc_cli(
         additional_directories = [additional_directories]
     for additional_directory in additional_directories:
         input_dir = os.path.join(
-            p.data_directory, release, dataset, "level1a", additional_directory
+            p.data_directory, release, dataset, level_source, additional_directory
         )
         output_dir = os.path.join(input_dir, future_deck[0])
         mkdir(output_dir)
-        post_processing(
+        merge(
             idir=input_dir,
             odir=output_dir,
             release=release,

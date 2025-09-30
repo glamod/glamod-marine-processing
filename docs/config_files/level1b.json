@@ -5,6 +5,7 @@
   "job_time_hr": "01",
   "job_time_min": "00",
   "correction_version": "null",
+  "delete_no_obs": true,
   "duplicates": {
     "ignore_entries": {
       "primary_station_id": [

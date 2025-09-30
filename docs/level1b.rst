@@ -6,7 +6,7 @@
 Level 1b
 ========
 
-Level 1b integrates external files containing enhanced information on the
+Level 1b integrates *NOC corrections* containing enhanced information on the
 duplicate status of the observations, corrected date/time and locations, and
 linked station IDs with the level1a data. As part of the integration a weather
 report may move between months if an error in the date had previously been
@@ -15,12 +15,8 @@ processing used to generate these external files is described in the marine
 duplication identification document (available upon request,
 to be published shortly). It should be noted that this processing is currently
 external to C3S311a_lot2 but will be integrated in a future release.
-
-The external files need to be copied to the datasets directory in the marine
-data directory prior to processing (datasets/NOC_corrections/*cor_version*).
-Once copied to the required directory structure the files need to be reformatted
-for integration with the level1a files. This is processing is done via python
-and shell scripts using the SLURM scheduler.
+Optionally, the cdm_reader_mapper.duplicate_check can be used to detect and
+flag duplicates.
 
 For more details run:
 

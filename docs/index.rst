@@ -44,12 +44,13 @@ concurrently to the overall scheme (see figure below).
    new-data-release
    pre-processing
    level1a
-   post-processing
    level1b
    level1c
    level1d
    level1e
    level2
+   merge
+   split
    contributing
    authors
    changes

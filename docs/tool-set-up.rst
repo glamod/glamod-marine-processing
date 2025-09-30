@@ -17,22 +17,6 @@ the repository needs to be cloned:
 
   git clone https://github.com/glamod/glamod-marine-processing
 
-
-Setting paths and environments
-------------------------------
-
-The paths for the processing software and data files, including a scratch directory for the user
-running the software will be created automatically while calling the software the first time.
-Edit the script file and set the environment variables as indicated below:
-
-* code_directory: full path to the obs-suite code.
-* home_directory_smf: full path to the obs-suite configuration.
-* data_directory: full path to marine data file system.
-* scratch_directory: this is system dependent
-
-These paths are pre-defined for KAY, MeluXina and BASTION. The default machine is BASTION.
-You can set the paths via the command-line interface.
-
 Installation
 ------------
 
@@ -49,3 +33,21 @@ If you're interested in participating in the development of the **glamod-marine-
     pip install -e .[dev]      # Install optional development dependencies in addition
     pip install -e .[docs]     # Install optional dependencies for the documentation in addition
     pip install -e .[all]      # Install all the above for complete dependency version
+
+
+Setting paths and environments
+------------------------------
+
+The paths for the processing software and data files, including both a data directory and a release directory
+for the user running the software has to be set in a configuration file.
+
+* **glamod**: full path to user-specific release directory
+* **data_directory**: full path to marine data file system.
+
+These paths are pre-defined for KAY, MeluXina and BASTION. The default machine is BASTION.
+If you want to work on another marine, please create a new configuration file with the name of your machine in it:
+
+``glamod_marine_processing/configuration_files/config_<your_machine>.json``
+
+Other directories that will be needed for processing the data will be created
+automatically while calling the software the first time.

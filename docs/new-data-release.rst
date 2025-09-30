@@ -33,9 +33,20 @@ Currently, the following configuration sets are available:
    * - Demo release
      - release_demo-000000/ICOADS_R3.0.0T
      - v1.1
-   * - Stable release
+   * - Previous release
      - release_7.0/000000/ICOADS_R3.0.2T
      - v7.0.1
+   * - Stable release
+     - release_8.0/000000/ICOADS_R3.0.0T
+     - v8.0.0
+   * -
+     - release_8.0/000000/ICOADS_R3.0.2T
+     - v8.0.0
+   * -
+     - release_8.0/000000/C-RAID_1.2
+     - v8.0.0
+
+
 
 Up until v1.1 (release_2.0), the configuration files were not maintained in
 the configuration repository, but in the code repository. They have been now
@@ -95,6 +106,19 @@ The figure below shows a sample of this file:
 
 .. literalinclude:: config_files/source_deck_list.txt
 
+Post process list
+^^^^^^^^^^^^^^^^^
+
+Create file *release-config_dir*/source_deck_list_post.json
+
+This is a simple ascii file with a single source-deck partition to process.
+Both *source_deck_list* and *source_deck_list_pots* are used in **merge_suite**
+or **split_suite** to merge multiple source-deck partitions into a single
+source-deck partition or to split a single source-deck partition into multiple
+source-deck partitions.
+
+.. literalinclude:: config_files/source_deck_list_post.txt
+
 .. _level1a_config_file:
 
 Level 1a configuration file
@@ -113,8 +137,10 @@ The figure below shows a sample of this file:
 This file has its default configuration parameters in the outer keys.
 Source-deck specific configuration can be applied by specifying a configuration
 parameter under a *sid-dck* key. In the sample given, all the
-source and decks will be processed with the default configuration, but 063-714,
-that will use its own parameters.
+source and decks will be processed with the default configuration, but using their
+source-deck partition specific *data_model* for mapping. Optionally, some specific
+reports or observations can be set on a blacklist or on a list of generic IDs.
+This is important for quality control in *level1e*.
 
 Configuration parameters job* are only used by the slurm launchers, while the
 rest by the corresponding level1a.py script.
@@ -126,12 +152,11 @@ Level 1b configuration file
 
 Create file *release_config_dir*/level1b.json.
 
-This file contains information on
-the NOC corrections version to be used and the correspondences between the
-CDM tables fields on which the corrections are applied and the subdirectories
-where these corrections can be found. The CDM history stamp for every correction
-is also configured in this file. Alternatively, you can use the duplicate checker
-from the cdm_reader_mapper module.
+This file contains information on the *NOC corrections* version to be used
+and the correspondences between the CDM tables fields on which the corrections
+are applied and the subdirectories where these corrections can be found.
+The CDM history stamp for every correction is also configured in this file.
+Alternatively, you can use the duplicate checker from the cdm_reader_mapper module.
 
 The figure below shows a sample of this file:
 
@@ -153,10 +178,7 @@ Level 1c configuration file
 
 Create file *release_config_dir*/level1c.json.
 
-The only configuration parameters
-required in this file are those related to the slurm launchers, as the rest of
-the configuration of this process is basically hardcoded in the level1c.py
-script.
+This file contains information on the *NOC corrections* version to be used.
 
 The figure below shows a sample of this file:
 
@@ -175,14 +197,13 @@ Level 1d configuration file
 
 Create file *release_config_dir*/level1d.json.
 
-This file contains information
-on the metadata sources that are merged into the level1c data. Currently the
-only MD source is wmo_publication_47 and the full process is basically tailored
+This file contains information on the metadata sources that are merged into the level1c data.
+Currently the only MD source is the *Pub47 files* and the full process is basically tailored
 to Pub47 as pre-processed in NOC.
 
 This file contains information of the subdirectory in the release data directory
 where the metadata can be found ("md_subdir") and the name of the mapping within the
-Common Data Model mapper module used to map pub47 to the CDM ("md_model").
+Common Data Model mapper module used to map Pub47 to the CDM ("md_model").
 
 The level1d process will fail if it doesn't find a metadata file for a month
 partition. To account for periods where metadata are not available, the
@@ -216,18 +237,31 @@ Level 1e configuration file
 
 Create file *release_config_dir*/level1e.json.
 
-The level1e specific parameters included in this file are:
+The level1e specific quality control parameters included in this file are:
 
-* "qc_first_date_avail" : first monthly quality control file the process can
-  expect to find. If the data files to process are prior to this date, then
-  the data files will progress to the next level without quality flag merging
-  and without raising an error.
-* "qc_last_date_avail" : last monthly quality control file the process can
-  expect to find. If the data files to process are later to this date, then
-  the data files will progress to the next level without quality flag merging
-  and without raising an error.
 * "history_explain" : text added to the header file history field when flags are
   merged.
+* "qc_settings": Settings used by marine_qc.
+
+  * "copies": Skip quality control of the key observations, instead use quality flags
+    of the value observation.
+  * "individual_reports": Settings applied on individual reports
+
+      * "preprocessing": Define external climtology files and read them as background climatologies
+      * "header": QC functions applied on header files
+      * "observations": QC functions applied on observations files
+      * "combined": Combined QC functions applied on two observation files
+
+  * "sequential_reports": Settings applied on tracks of *primary_station_ids*.
+
+      * "header": QC functions applied on header files
+      * "observations": QC functions applied on observations files
+      * "combined": Combined QC functions applied on two observation files
+
+  * "grouped_reports": Settings applied on grouped observations.
+
+      * "preprocessing": Define external climtology files and read them as background climatologies
+      * "observations": QC functions applied on observations files
 
 
 The figure below shows a sample of this file:

@@ -35,17 +35,24 @@ def _obs_testing(dataset, level, capsys):
             return expected
         if level in _settings.drops.keys():
             expected = expected.drop(_settings.drops[level]).reset_index(drop=True)
+        if not hasattr(_settings, "reindex"):
+            return expected
+        if level in _settings.reindex:
+            expected = expected.sort_values(by=("header", "report_id")).reset_index(
+                drop=True
+            )
         return expected
 
     cache_dir_t = f"{cache_dir}/T{level}"
     cache_dir_e = f"{cache_dir}/E{level}"
-    cache_dir_t_r = f"{cache_dir}/T{level}/release_8.0"
+    cache_dir_t_r = f"{cache_dir_t}/release_8.0"
+    cache_dir_d = f"{cache_dir_t}/datasets"
 
     _settings = get_settings(dataset)
     tables = _settings.which_tables[level]
     if add_data.get(level) is not None:
         add_data[level](
-            cache_dir=cache_dir_t_r,
+            cache_dir=cache_dir_d,
         )
 
     _load_data.load_input(dataset, level, _settings, cache_dir_t)
@@ -64,6 +71,7 @@ def _obs_testing(dataset, level, capsys):
         "-o "
         "-run"
     )
+
     os.system(s)
     captured = capsys.readouterr()
     assert captured.out == ""

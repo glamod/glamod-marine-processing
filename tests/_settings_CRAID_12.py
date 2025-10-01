@@ -111,6 +111,9 @@ manipulation = {
 }
 
 drops = {
+    "level1b": [0, 2, 4, 6],
     "level1e": [0, 2, 4, 6],
     "level3": [0, 2, 4, 6],
 }
+
+reindex = ["level1b"]

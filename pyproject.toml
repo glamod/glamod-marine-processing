@@ -80,7 +80,8 @@ all = ["glamod_marine_processing[dev]", "glamod_marine_processing[docs]"]
 [project.scripts]
 obs_suite = "glamod_marine_processing.cli_obs:obs_cli"
 pre_proc = "glamod_marine_processing.cli_preproc:pre_proc_cli"
-post_proc = "glamod_marine_processing.cli_postproc:post_proc_cli"
+merge_suite = "glamod_marine_processing.cli_merge:merge_cli"
+split_suite = "glamod_marine_processing.cli_split:split_cli"
 
 [project.urls]
 "Homepage" = "https://glamod-marine-processing.readthedocs.io"

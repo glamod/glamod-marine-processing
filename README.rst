@@ -1,4 +1,4 @@
-==================================================================
+﻿==================================================================
 GLAMOD marine processing: ``glamod-marine-processing`` toolbox
 ==================================================================
 
@@ -23,7 +23,8 @@ Once installed you can use it as an command-line interface. For more information
 
     pre_proc --help        # Preprocessing steps to create level0 data
     obs_suite --help       # Observations workflow help page
-    post_proc  --help      # Postprocessing step to merge available level1a decks into one single deck
+    merge_suite  --help    # Step to merge multiple available decks into one single deck
+    split_suite --help     # Step to split one single available deck into multiple decks
 
 Installation
 ------------

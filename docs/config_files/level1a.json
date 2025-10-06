@@ -4,21 +4,138 @@
   "job_memo_mb": 16000,
   "job_time_hr": "01",
   "job_time_min": "30",
+  "read_sections": [
+    "core",
+    "c1",
+    "c98"
+  ],
+  "filter_reports_by": {
+    "c1.PT": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5"
+    ]
+  },
   "103-792": {
-    "data_model": "icoads_r302_d792",
-    "read_sections": [
-      "core",
-      "c1",
-      "c98"
-    ],
-    "filter_reports_by": {
-      "c1.PT": [
-        "0",
-        "1",
-        "2",
-        "3",
-        "4",
-        "5"
+    "data_model": "icoads_r302_d792"
+  },
+  "103-793": {
+    "data_model": "icoads_r302_d793"
+  },
+  "103-794": {
+    "data_model": "icoads_r302_d794"
+  },
+  "103-795": {
+    "data_model": "icoads_r302_d795"
+  },
+  "103-797": {
+    "data_model": "icoads_r302_d797"
+  },
+  "114-992": {
+    "data_model": "icoads_r302_d992"
+  },
+  "114-993": {
+    "data_model": "icoads_r302_d993"
+  },
+  "114-994": {
+    "data_model": "icoads_r302_d994"
+  },
+  "114-995": {
+    "data_model": "icoads_r302_d995"
+  },
+  "172-798": {
+    "data_model": "icoads_r302_d798"
+  },
+  "blacklisting": {
+    "header": {
+      "func": "do_blacklist",
+      "params": {
+        "id": [
+          "core",
+          "ID"
+        ],
+        "deck": [
+          "c1",
+          "DCK"
+        ],
+        "year": [
+          "core",
+          "YR"
+        ],
+        "month": [
+          "core",
+          "MO"
+        ],
+        "latitude": [
+          "core",
+          "LAT"
+        ],
+        "longitude": [
+          "core",
+          "LON"
+        ],
+        "platform_type": [
+          "c1",
+          "PT"
+        ]
+      }
+    },
+    "observations-dpt": {
+      "func": "do_humidity_blacklist",
+      "params": {
+        "platform_type": [
+          "c1",
+          "PT"
+        ]
+      }
+    },
+    "observations-at": {
+      "func": "do_mat_blacklist",
+      "params": {
+        "deck": [
+          "c1",
+          "DCK"
+        ],
+        "year": [
+          "core",
+          "YR"
+        ],
+        "latitude": [
+          "core",
+          "LAT"
+        ],
+        "longitude": [
+          "core",
+          "LON"
+        ],
+        "platform_type": [
+          "c1",
+          "PT"
+        ]
+      }
+    },
+    "observations-ws": {
+      "func": "do_wind_blacklist",
+      "params": {
+        "deck": [
+          "c1",
+          "DCK"
+        ]
+      }
+    }
+  },
+  "generic_ids": {
+    "params": {
+      "inid": [
+        "core",
+        "ID"
+      ],
+      "inyear": [
+        "core",
+        "YR"
       ]
     }
   }

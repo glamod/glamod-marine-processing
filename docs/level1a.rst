@@ -7,9 +7,9 @@ Level 1a
 ========
 
 Level 1a contains the initial data converted from the input data sources
-(level0) to files compatible with the CDM.
+(*level0 data*) to files compatible with the CDM.
 
-Every monthly file of the individual source-deck ICOADS dataset partitions is
+Every monthly file of the individual source-deck dataset partitions is
 converted with the following command:
 
 Command to create level1a observation suite scripts:

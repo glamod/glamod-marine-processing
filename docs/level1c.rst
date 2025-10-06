@@ -7,9 +7,9 @@ Level 1c
 ========
 
 Level1c files contain reports from level1b that have been further validated
-following corrections to the date/time, location and station ID. Those failing
-validation are rejected and archived for future analysis. Additionally, datetime
-corrections applied previously in level1b, can potentially result in reports
+following corrections to the date/time, location and station ID using *NOC ancillaries*.
+Those failing validation are rejected and archived for future analysis. Additionally,
+datetime corrections applied previously in level1b, can potentially result in reports
 being relocated to a different month. These reports are moved to their correct
 monthly file in this level.
 

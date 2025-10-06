@@ -6,7 +6,7 @@
 Level 1e
 ========
 
-The level1e adds quality control flags to the level1d data.
+The level1e does quality control and adds quality control flags to the level1d data.
 For quality control, the MetOffice QC (https://github.com/glamod/marine_qc)
 is used.
 
@@ -29,13 +29,3 @@ are yyyy-mm-<release>-<update>.ext with ext either ok or failed depending on the
 subjob termination status.
 
 List  \*.failed in the sid-dck level1e log directories to find if any went wrong.
-
-After the basic QC flags have been merged the enhanced drifting buoy flags need
-to be merged with the level1e data. This process is described under Quality
-control in 4.4.6 in the C3S Technical Service Document (but will be moved to the level1e
-processing in a future update).
-
-Once the drifting buoy flags have been merged the data files will no longer
-change and summary data reports need to be generated prior to the data moving to
-level2. See documentation in git@git.noc.ac.uk:iregon/marine-user-guide.git to
-create the reports.

@@ -8,12 +8,10 @@ Level 1d
 
 The level1d files contain the level1c data merged with external metadata (where
 available). In the current marine processing implementation, the level1c are
-merged with WMO Publication 47 metadata to set instrument heights, station names
+merged with *Pub47 files* to set instrument heights, station names
 and platform sub types (i.e. type of ship). Prior to merging, the WMO
 Publication 47 metadata are harmonised, quality controlled and pre-processed in
-a process that run independently to this data flow (add ref). After
-pre-processing, this info needs to be made available to the release in directory
-*data_directory*/*release*/wmo_publication_47/monthly/.
+a process that run independently to this data flow (add ref).
 
 For more details run:
 

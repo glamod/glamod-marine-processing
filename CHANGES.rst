@@ -20,6 +20,14 @@ New features and enhancements
 * add environment.yml file (:pull:`76`)
 * add dummy observation configuration files for release_8.0 (:issue:`113`, :pull:`102`)
 * make this tool running with `cdm_reader_mapper` >= 2.1.0 (:issue:`113`, :pull:`102`)
+* new module `split` to split decks from single deck into new multiple deck list (:pull:`140`)
+* new CLI `split_suite` to split decks from single deck into new multiple deck list (:pull:`140`)
+* ``obs_suite``: run jobs in parallel using nohup (:pull:`140`)
+* ``merge_suite``: not only running for level1a data (:pull:`140`)
+* ``obs_suite``: new release 8.0 config files for : ICOADS_R3.0.0T, ICOADS_R3.0.2T, C-RAID_1.1 and C-RAID_1.2 (:issue:`113`, :pull:`140`)
+* new decorator `auto_cast` to automatically convert input data type to desired data type (:pull:`140`)
+* ``obs_suite``: level1a now flags data on blacklist (6) and data with generic IDs (88) (:issue:`147`, :pull:`140`)
+* ``obs_suite``: level1e now uses `marine_qc` to calculate quality control flags (:issue:`113`, :pull:`140`)
 
 CI changes
 ^^^^^^^^^^
@@ -34,6 +42,8 @@ Internal changes
 * ``obs_suie``: name log files according to the date of the source files instead of simply numbering them consecutively (:issue:`74`, :pull:`79`)
 * ``obs_suite``: standardize level scripts (:pull:`79`)
 * rename ci/requirements to CI, tidy up requirements and add dependencies to pyproject.toml file (:pull:`76`)
+* ``merge_suite``: use joblib for parallelization (:pull:`140`)
+* ``obs_suite``: restructure level1b, level1c, level1d and level_slurm scripts (:issue:`113`, :pull:`140`)
 
 Breaking changes
 ^^^^^^^^^^^^^^^^
@@ -41,6 +51,7 @@ Breaking changes
 * command-line interface: set default release from "release_7.0" to "release_8.0" (:issue:`113`, :pull:`102`)
 * extract blacklisting and some ICOADS specific functions from ``qc_suite```to ``obs_suite`` (:issue:`131`, :pull:`137`)
 * refactor ``qc_suite`` and move to https://github.com/glamod/marine_qc (:issue:`108`, :pull:`117`)
+* rename module ``post_processing`` to ``merge`` and CLI ``post_proc`` to ``merge_suite`` (:pull:`140`)
 
 v7.1.0 (2024-11-25)
 -------------------

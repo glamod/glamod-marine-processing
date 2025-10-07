@@ -120,14 +120,14 @@ of the QC files relative to a set path (i.e. informing of the QC version)
 
 from __future__ import annotations
 
-import datetime
+import copy
 import logging
 import os
 import sys
 from importlib import reload
 
-import numpy as np
 import pandas as pd
+from _qc_utilities import do_qc
 from _utilities import (
     date_handler,
     paths_exist,
@@ -137,231 +137,241 @@ from _utilities import (
     write_cdm_tables,
 )
 from cdm_reader_mapper.cdm_mapper.tables.tables import get_cdm_atts
+from marine_qc import plot_qc_outcomes as pqo
+from marine_qc.auxiliary import isvalid
 
 reload(logging)  # This is to override potential previous config of logging
 
 
 # Functions--------------------------------------------------------------------
-# This is to get the unique flag per parameter
-def get_qc_flags(qc, qc_df_full):
-    """Get QC flag."""
-    qc_avail = True
-    bad_flag = "1" if qc != "POS" else "2"
-    good_flag = "0"
-    qc_filename = os.path.join(
-        qc_path,
-        params.year,
-        params.month,
-        "_".join([qc, "qc", params.year + params.month, "CCIrun.csv"]),
-    )
-    logging.info(f"Reading {qc} qc file: {qc_filename}")
-    qc_df = pd.read_csv(
-        qc_filename,
-        dtype=qc_dtype,
-        usecols=qc_columns.get(qc),
-        delimiter=qc_delimiter,
-        on_bad_lines="skip",
-    )
-    # Map UID to CDM (hardcoded source ICOADS_R3.0.0T here!!!!!)
-    # and keep only reports from current monthly table
-    # qc_df['UID'] = 'ICOADS-30-' + qc_df['UID']
-    qc_df.set_index("UID", inplace=True, drop=True)
-    qc_df = qc_df.reindex(header_db.index)
-    if len(qc_df.dropna(how="all")) == 0:
-        # We can have files with nothing other than duplicates (which are not qced):
-        # set qc to not available but don't fail: keep on generating level1e product afterwards
-        logging.warning(f"No {qc} flags matching")
-        qc_avail = False
-        return qc_avail, qc_df_full
-
-    locs_notna = qc_df.notna().all(axis=1)
-    qc_df.loc[locs_notna, "total"] = qc_df.loc[locs_notna].sum(axis=1)
-    qc_df.loc[locs_notna, "global"] = qc_df["total"].apply(
-        lambda x: good_flag if x == 0 else bad_flag
-    )
-    qc_df.rename({"global": qc}, axis=1, inplace=True)
-    # For measured params, eliminate resulting quality_flag when that parameter
-    # is not available in a report ('noval'==1)
-    # Mixing failing and missing is annoying for several things afterwards
-    if qc != "POS":
-        qc_df.loc[qc_df["noval"] == "1", qc] = np.nan
-    qc_df_full[qc] = qc_df[qc]
-    return qc_avail, qc_df_full
+def remove_invalid_positions(df):
+    """Remove rows where latitude and/or longitude is None."""
+    df.dropna(subset=["latitude", "longitude"], inplace=True)
 
 
-def add_report_quality(qc_df_full):
-    """Add report quality."""
-    failed_location = "2"
-    pass_report = "0"
-    failed_report = "1"
-    not_checked_report = "2"
-    # Initialize to not checked: there were lots of discussions with this!
-    # override ICOADS IRF flag if not checked in C3S system? In the end we said yes.
-    qc_df_full["report_quality"] = not_checked_report
-    # First: all observed params fail -> report_quality = '1'
-    qc_param = [x for x in qc_list if x != "POS"]
-    qc_param_applied = qc_df_full[qc_param].count(axis=1)
-    qc_param_sum = qc_df_full[qc_param].astype(float).sum(axis=1)
-    qc_df_full.loc[
-        (qc_param_sum >= qc_param_applied) & (qc_param_applied > 0), "report_quality"
-    ] = failed_report
-    # Second: at least one observed param passed -> report_quality = '0'
-    qc_df_full.loc[qc_param_sum < qc_param_applied, "report_quality"] = pass_report
-    # Third: POS qc fails, no matter how good the observed params are -> report_quality '1'
-    qc_df_full.loc[qc_df_full["POS"] == failed_location, "report_quality"] = (
-        failed_report
-    )
-    return qc_df_full
+def update_data_dict(
+    data_dict,
+    report_quality,
+    location_quality,
+    report_time_quality,
+    quality_flags,
+    history,
+):
+    """Update data_dict with new quality flags."""
+    for table in data_dict.keys():
+        df = data_dict[table]
+        if table == "header":
+            df = data_dict[table]
+            df["report_quality"] = report_quality
+            df["location_quality"] = location_quality
+            df["report_time_quality"] = report_time_quality
+            df["history"] = history
+            continue
+
+        df["quality_flag"] = quality_flags[table]
 
 
-def compare_quality_checks(df):
-    """Compare entries with location_quality and report_time_quality."""
-    df = df.mask(location_quality == "2", "1")
-    df = df.mask(report_time_quality == "4", "1")
-    df = df.mask(report_time_quality == "5", "1")
-    return df
+def value_counts(series):
+    """Count values in pandas Series."""
+    return series.value_counts(dropna=False).to_dict()
 
 
-# This is to apply the qc flags and write out flagged tables
-def process_table(table_df, table, pass_time=None):
-    """Process table."""
-    if pass_time is None:
-        pass_time = "2"
-    not_checked_report = "2"
-    not_checked_location = "3"
-    not_checked_param = "2"
-    logging.info(f"Processing table {table}")
+def update_dtypes(data_df, table):
+    """Update dtypes in DataFrame."""
+    if data_df.empty:
+        pass
+    elif table == "header":
+        data_df["platform_type"] = data_df["platform_type"].astype(int)
+        data_df["latitude"] = data_df["latitude"].astype(float)
+        data_df["longitude"] = data_df["longitude"].astype(float)
+        data_df["report_timestamp"] = pd.to_datetime(
+            data_df["report_timestamp"],
+            format="%Y-%m-%d %H:%M:%S",
+            errors="coerce",
+        )
+        data_df["station_speed"] = data_df["station_speed"].astype(float)
+        data_df["station_course"] = data_df["station_course"].astype(float)
+        data_df["report_quality"] = data_df["report_quality"].astype(int)
+        data_df["location_quality"] = data_df["location_quality"].astype(int)
+        data_df["report_time_quality"] = data_df["report_time_quality"].astype(int)
+    else:
+        data_df["observation_value"] = data_df["observation_value"].astype(float)
+        data_df["latitude"] = data_df["latitude"].astype(float)
+        data_df["longitude"] = data_df["longitude"].astype(float)
+        data_df["date_time"] = pd.to_datetime(
+            data_df["date_time"],
+            format="%Y-%m-%d %H:%M:%S",
+            errors="coerce",
+        )
+        data_df["quality_flag"] = data_df["quality_flag"].astype(int)
+    return data_df
 
-    if isinstance(table_df, str):
-        # Assume 'header' and in a DF in table_df otherwise
-        # Open table and reindex
-        table_df = read_cdm_tables(params, table)
 
-        if table_df is None or table_df.empty:
-            logging.warning(f"Empty or non existing table {table}")
-            return
-        table_df = table_df[table].set_index("report_id", drop=False)
+def get_valid_indexes(df, table):
+    """Get valid indexes."""
+    if df.empty:
+        return pd.Index([])
+    valid_indexes = isvalid(df["latitude"]) & isvalid(df["longitude"])
+    if table == "header":
+        valid_indexes = (
+            valid_indexes
+            & isvalid(df["report_timestamp"])
+            & (df["report_quality"] != 6)
+            & (df["report_quality"] != 1)
+        )
+    else:
+        valid_indexes = (
+            valid_indexes
+            & isvalid(df["date_time"])
+            & (df["quality_flag"] != 6)
+            & (df["quality_flag"] != 1)
+            & isvalid(df["observation_value"])
+        )
+    return valid_indexes
 
-    previous = len(table_df)
-    table_df = table_df[table_df["report_id"].isin(report_ids)]
-    total = len(table_df)
-    removed = previous - total
-    ql_dict[table] = {
-        "total": total,
-        "deleted": removed,
-    }
-    if table_df.empty:
-        logging.warning(f"Empty table {table}.")
-        return
 
-    if flag:
-        qc = table_qc.get(table).get("qc")
-        element = table_qc.get(table).get("element")
-        qc_table = qc_df[[qc]]
-        qc_table = qc_table.rename({qc: element}, axis=1)
-        table_df.update(qc_table)
+def create_consistent_datadict(
+    data_dict,
+    tables_in,
+    params,
+    convert_dtypes=True,
+    remove_invalids=False,
+    drop_positions=True,
+):
+    """Remove report_ids without any observations."""
+    report_ids = pd.Series()
+    for table_in in tables_in:
+        if table_in not in data_dict.keys():
+            db_ = read_cdm_tables(params, table_in)
+            if db_.empty:
+                continue
+            data_dict[table_in] = db_[table_in]
 
-        updated_locs = qc_table.loc[qc_table.notna().all(axis=1)].index
+        if drop_positions is True:
+            remove_invalid_positions(data_dict[table_in])
+        if convert_dtypes is True:
+            update_dtypes(data_dict[table_in], table_in)
+        if remove_invalids is True:
+            valid_indexes = get_valid_indexes(data_dict[table_in], table_in)
+            data_dict[table_in] = data_dict[table_in].loc[valid_indexes]
+        report_ids = pd.concat(
+            [report_ids, data_dict[table_in]["report_id"]], ignore_index=True
+        )
 
-        if table != "header":
-            ql_dict[table]["quality_flag"] = (
-                table_df[element].value_counts(dropna=False).to_dict()
-            )
+    report_ids = report_ids[report_ids.duplicated()]
+
+    ql_dict = {}
+    for table, df in data_dict.items():
+        df = df.set_index("report_id", drop=False)
+        p_length = len(df)
+        valid_indexes = df.index.intersection(report_ids)
+        df = df.loc[valid_indexes]
+
+        data_dict[table] = df
+
+        c_length = len(df)
+        r_length = p_length - c_length
+        ql_dict[table] = {
+            "total": c_length,
+            "deleted": r_length,
+        }
+    return data_dict, ql_dict
+
+
+def configure_month_params(params):
+    """Configure params for both previous and next months."""
+    year = int(params.year)
+    month = int(params.month)
+    if month == 12:
+        month_next = 1
+        year_next = year + 1
+    else:
+        month_next = month + 1
+        year_next = year
+    if month == 1:
+        month_prev = 12
+        year_prev = year - 1
+    else:
+        month_prev = month - 1
+        year_prev = year
+
+    year_curr = f"{params.year:04}"
+    year_prev = f"{year_prev:04}"
+    year_next = f"{year_next:04}"
+    month_curr = f"{params.month:02}"
+    month_prev = f"{month_prev:02}"
+    month_next = f"{month_next:02}"
+
+    params_prev = copy.deepcopy(params)
+    params_prev.prev_fileID = params_prev.prev_fileID.replace(year_curr, year_prev)
+    params_prev.prev_fileID = params_prev.prev_fileID.replace(month_curr, month_prev)
+    params_next = copy.deepcopy(params)
+    params_next.prev_fileID = params_next.prev_fileID.replace(year_curr, year_next)
+    params_next.prev_fileID = params_next.prev_fileID.replace(month_curr, month_next)
+    return params_prev, params_next
+
+
+def get_qc_columns(data_dict):
+    """Copy data dictionary, convert values and get quality flags."""
+    quality_flags = {}
+    report_quality = pd.Series()
+    location_quality = pd.Series()
+    report_time_quality = pd.Series()
+    history = pd.Series()
+    data_dict_qc = {}
+
+    for table, df in data_dict.items():
+        data_dict_qc[table] = df.copy()
 
         if table == "header":
-            table_df.update(qc_df["report_quality"])
-            history_add = f";{history_tstmp}. {params.history_explain}"
-            table_df.loc[:, "report_time_quality"] = pass_time
-            ql_dict[table]["location_quality_flag"] = (
-                table_df["location_quality"].value_counts(dropna=False).to_dict()
-            )
-            ql_dict[table]["report_quality_flag"] = (
-                table_df["report_quality"].value_counts(dropna=False).to_dict()
-            )
-            table_df.update(
-                table_df.loc[updated_locs, "history"].apply(lambda x: x + history_add)
-            )
-    # Here very last minute change to account for reports not in QC files:
-    # need to make sure it is all not-checked!
-    # Test new things with 090-221. See 1984-03.
-    # What happens if not POS flags matching?
-    else:
-        if table != "header":
-            table_df.loc[:, "quality_flag"] = not_checked_param
+            report_quality = df["report_quality"].copy()
+            location_quality = df["location_quality"].copy()
+            report_time_quality = df["report_time_quality"].copy()
+            history = df["history"].copy()
         else:
-            table_df.loc[:, "report_time_quality"] = pass_time
-            table_df.loc[:, "report_quality"] = not_checked_report
-            table_df.loc[:, "location_quality"] = not_checked_location
+            quality_flags[table] = df["quality_flag"].copy()
 
-    if table != "header":
-        table_df.loc[:, "quality_flag"] = compare_quality_checks(
-            table_df["quality_flag"]
-        )
-    if table == "header":
-        table_df.loc[:, "report_quality"] = compare_quality_checks(
-            table_df["report_quality"]
-        )
-
-    write_cdm_tables(params, table_df, tables=table)
+    return (
+        data_dict_qc,
+        report_quality,
+        location_quality,
+        report_time_quality,
+        quality_flags,
+        history,
+    )
 
 
-# ------------------------------------------------------------------------------
+def concat_data_dicts(*dicts, dictref):
+    """Concatenate data dicts."""
+    dictout = {}
+    dictref = {"header": {}, "observations-sst": {}}
+    for table in dictref.keys():
+        dfs = []
+        for d in dicts:
+            dfs.append(d.get(table, pd.DataFrame()))
+        df = pd.concat(dfs)
 
-# PARAMETERIZE HOW TO HANDLE QC FILES AND HOW TO APPLY THESE TO THE CDM FIELDS-
-# -----------------------------------------------------------------------------
-# 1. These are the columns we actually use from the qc files, regardless of the
-# existence of others. These names must be the same as the ones in the QC file
-# header (1st line)
-qc_columns = dict()
-qc_columns["SST"] = ["UID", "bud", "clim", "nonorm", "freez", "noval", "hardlimit"]
-qc_columns["AT"] = [
-    "UID",
-    "bud",
-    "clim",
-    "nonorm",
-    "noval",
-    "mat_blacklist",
-    "hardlimit",
-]
-qc_columns["SLP"] = ["UID", "bud", "clim", "nonorm", "noval"]
-qc_columns["DPT"] = ["UID", "bud", "clim", "nonorm", "ssat", "noval", "rep", "repsat"]
-qc_columns["POS"] = ["UID", "trk", "date", "time", "pos", "blklst"]
-qc_columns["W"] = ["UID", "noval", "hardlimit", "consistency", "wind_blacklist"]
+        dictout[table] = df
 
-# 2. This is to what table-element pair each qc file is pointing to
-qc_cdm = {
-    "SST": ("observations-sst", "quality_flag"),
-    "SLP": ("observations-slp", "quality_flag"),
-    "AT": ("observations-at", "quality_flag"),
-    "DPT": [("observations-dpt", "quality_flag"), ("observations-wbt", "quality_flag")],
-    "W": [("observations-ws", "quality_flag"), ("observations-wd", "quality_flag")],
-    "POS": ("header", "location_quality"),
-}
+    return dictout
 
-# 3. This is the same as above but with different indexing,
-# to ease certain operations
-table_qc = {}
-for k, v in qc_cdm.items():
-    if isinstance(v, list):
-        for t in v:
-            table_qc[t[0]] = {"qc": k, "element": t[1]}
-    else:
-        table_qc[v[0]] = {"qc": k, "element": v[1]}
 
-qc_dtype = {"UID": "object"}
-qc_delimiter = ","
-# -----------------------------------------------------------------------------
+def get_nearest_to_hour(series, groupby=None):
+    """Get time stamps nearest to each whole hour."""
+    hours = series.dt.floor("H")
+    delta = (series - hours).abs()
+    df = pd.DataFrame({"timestamp": series, "hour": hours, "delta": delta})
 
-# Some other parameters -------------------------------------------------------
-cdm_atts = get_cdm_atts()
-obs_tables = [x for x in cdm_atts.keys() if x != "header"]
+    group_keys = ["hour"]
+    if groupby is not None:
+        aligned_group = groupby.reindex(series.index)
+        df["group"] = aligned_group.values
+        group_keys = ["group"] + group_keys
 
-try:
-    history_tstmp = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S")
-except AttributeError:  # for python < 3.11
-    history_tstmp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    nearest = df.loc[df.groupby(group_keys)["delta"].idxmin()]
 
-# -----------------------------------------------------------------------------
+    return nearest[["timestamp"]]
+
 
 # MAIN ------------------------------------------------------------------------
 
@@ -374,46 +384,23 @@ logging.basicConfig(
 )
 
 process_options = [
+    "qc_settings",
     "history_explain",
-    "qc_first_date_avail",
-    "qc_last_date_avail",
     "no_qc_suite",
 ]
 params = script_setup(process_options, sys.argv)
 
-if params.year_init:
-    setattr(params, "qc_first_date_avail", f"{params.year_init}-01")
-if params.year_end:
-    setattr(params, "qc_last_date_avail", f"{params.year_end}-12")
-qc_path = os.path.join(params.data_path, params.release, "metoffice_qc", "base")
+# Some other parameters -------------------------------------------------------
+cdm_atts = get_cdm_atts()
+obs_tables = [x for x in cdm_atts.keys() if x != "header"]
 
-# Check we have all the dirs!
-paths_exist(qc_path)
+# -----------------------------------------------------------------------------
 
-# Check we have QC files!
-logging.info(f"Using qc files in {qc_path}")
-qc_pos_filename = os.path.join(
-    qc_path,
-    params.year,
-    params.month,
-    "_".join(["POS", "qc", params.year + params.month, "CCIrun.csv"]),
-)
-qc_avail = True
-if not os.path.isfile(qc_pos_filename):
-    file_date = datetime.datetime.strptime(
-        str(params.year) + "-" + str(params.month), "%Y-%m"
-    )
-    last_date = datetime.datetime.strptime(params.qc_last_date_avail, "%Y-%m")
-    first_date = datetime.datetime.strptime(params.qc_first_date_avail, "%Y-%m")
-    if file_date > last_date or file_date < first_date:
-        qc_avail = False
-        logging.warning(
-            f"QC only available in period {str(params.qc_first_date_avail)} to {str(params.qc_last_date_avail)}"
-        )
-        logging.warning("level1e data will be created with no merging")
-    else:
-        logging.warning(f"POSITION QC file not found: {qc_pos_filename}")
-        qc_avail = False
+# DO SOME PREPROCESSING ------------------------------------------------------
+
+# Set file path to external files
+ext_path = os.path.join(params.data_path, "external_files")
+paths_exist(ext_path)
 
 # Do some additional checks before clicking go, do we have a valid header?
 header_filename = params.filename
@@ -421,11 +408,14 @@ if not os.path.isfile(header_filename):
     logging.error(f"Header table file not found: {header_filename}")
     sys.exit(1)
 
-header_db = read_cdm_tables(params, "header")["header"]
+header_db = read_cdm_tables(params, "header")
 
 if header_db.empty:
     logging.error("Empty or non-existing header table")
     sys.exit(1)
+
+data_dict = {}
+data_dict["header"] = header_db["header"]
 
 # See what CDM tables are available for this fileID
 tables_in = ["header"]
@@ -433,8 +423,8 @@ for table in obs_tables:
     table_filename = header_filename.replace("header", table)
     if not os.path.isfile(table_filename):
         logging.warning(f"CDM table not available: {table_filename}")
-    else:
-        tables_in.append(table)
+        continue
+    tables_in.append(table)
 
 if len(tables_in) == 1:
     logging.error(
@@ -443,69 +433,155 @@ if len(tables_in) == 1:
     sys.exit()
 
 # Remove report_ids without any observations
-report_ids = pd.Series()
-for table_in in tables_in:
-    db_ = read_cdm_tables(params, table_in)
-    if not db_.empty:
-        db_ = db_[table_in]
-        report_ids = pd.concat([report_ids, db_["report_id"]], ignore_index=True)
-report_ids = report_ids[report_ids.duplicated()]
+data_dict, ql_dict = create_consistent_datadict(data_dict, tables_in, params)
 
 # DO THE DATA PROCESSING ------------------------------------------------------
-header_db.set_index("report_id", inplace=True, drop=False)
-ql_dict = {}
 
-# 1. PROCESS QC FLAGS ---------------------------------------------------------
-# GET THE QC FILES WE NEED FOR THE CURRENT SET OF CDM TABLES
-# AND CREATE A DF WITH THE UNIQUE FLAGS PER QC AND HAVE IT INDEXED TO FULL CDM
-# TABLE (ALL REPORTS)
-# ALSO BUILD FROM FULL QC FLAGS SET THE REPORT_QUALITY FLAG
-qc_list = list({table_qc.get(table).get("qc") for table in tables_in})
-qc_df = pd.DataFrame(index=header_db.index, columns=qc_list)
-if qc_avail:
-    # Make sure POS is first as we need it to process the rest!
-    # The use of POS in other QCs is probably a need inherited from BetaRelease,
-    # where param qc was merged with POS QC. Now we don't do that, so I am quite
-    # positive we don't use POS in assigning quality_flag in obs table
-    qc_list.remove("POS")
-    qc_list.insert(0, "POS")
-    for qc in qc_list:
-        qc_avail, qc_df = get_qc_flags(qc, qc_df)
-        if not qc_avail:
-            break
+# Update dtypes and get QC columns
+(
+    data_dict_qc,
+    report_quality,
+    location_quality,
+    report_time_quality,
+    quality_flags,
+    history,
+) = get_qc_columns(data_dict)
 
-if qc_avail:
-    qc_df = add_report_quality(qc_df)
 
-pass_time = None
-if params.no_qc_suite:
-    qc_avail = True
-    # Set report_quality to passed if report_quality is not checked
-    qc_df["report_quality"] = header_db["report_quality"]
-    qc_df["report_quality"] = qc_df["report_quality"].mask(
-        qc_df["report_quality"] == "2", "0"
+if params.no_qc_suite is True:
+    data_dict_add = {}
+    data_dict_buoy = {}
+    for table, df in data_dict.items():
+        data_dict_add[table] = pd.DataFrame(columns=df.columns)
+        data_dict_buoy[table] = pd.DataFrame(columns=df.columns)
+else:
+    # Get additional data: month +/-1
+    # SHIP
+    params_prev, params_next = configure_month_params(params)
+    data_dict_prev, _ = create_consistent_datadict(
+        {}, tables_in, params_prev, remove_invalids=True
     )
-    pass_time = header_db["report_time_quality"]
+    data_dict_next, _ = create_consistent_datadict(
+        {}, tables_in, params_next, remove_invalids=True
+    )
 
-qc_df = qc_df[qc_df.index.isin(report_ids)]
+    data_dict_add = concat_data_dicts(data_dict_prev, data_dict_next, dictref=data_dict)
 
-# 2. APPLY FLAGS, LOOP THROUGH TABLES -----------------------------------------
+    # BUOY
+    params_buoy = copy.deepcopy(params)
+    qc_dict = copy.deepcopy(params.qc_settings.get("grouped_reports"))
+    buoy_dataset = copy.deepcopy(qc_dict.get("buoy_dataset", "None"))
+    buoy_dck = copy.deepcopy(qc_dict.get("buoy_dck", "None"))
 
-# Test new things with 090-221. See 1984-03. What happens if not POS flags matching?
-# Need to make sure we override with 'not-checked'(2 or 3 depending on element!) default settings:
-#    header.report_quality = default ICOADS IRF flag to not-checked ('2')
-#    observations.quality_flag = default not-checked ('2') to not-checked('2')
-#    header.location_quality = default not-checked ('3') to not-checked('3')
+    params_buoy.prev_level_path = params_buoy.prev_level_path.replace(
+        params.dataset, buoy_dataset
+    )
+    params_buoy.prev_level_path = params_buoy.prev_level_path.replace(
+        params.sid_dck, buoy_dck
+    )
+    params_buoy_prev, params_buoy_next = configure_month_params(params_buoy)
+    data_dict_buoy_prev, _ = create_consistent_datadict(
+        {}, tables_in, params_buoy_prev, remove_invalids=True
+    )
+    data_dict_buoy_curr, _ = create_consistent_datadict(
+        {}, tables_in, params_buoy, remove_invalids=True
+    )
+    data_dict_buoy_next, _ = create_consistent_datadict(
+        {}, tables_in, params_buoy_next, remove_invalids=True
+    )
 
-# First header, then rest.
-location_quality = header_db["location_quality"].copy()
-report_time_quality = header_db["report_time_quality"].copy()
+    data_dict_buoy = concat_data_dicts(
+        data_dict_buoy_prev, data_dict_buoy_curr, data_dict_buoy_next, dictref=data_dict
+    )
 
-flag = True if qc_avail else False
-process_table(header_db, "header", pass_time=pass_time)
-for table in obs_tables:
-    flag = True if table in tables_in and qc_avail else False
-    process_table(table, table, pass_time=pass_time)
+    if not data_dict_buoy["header"].empty:
+        ids = data_dict_buoy["header"]["primary_station_id"]
+        for table, df in data_dict_buoy.items():
+            if df.empty:
+                continue
+            if table == "header":
+                time_axis = "report_timestamp"
+            else:
+                time_axis = "date_time"
+
+            time_data = get_nearest_to_hour(df[time_axis], groupby=ids)
+            data_dict_buoy[table] = df.loc[time_data.index]
+
+    for table in data_dict_qc.keys():
+        if table not in data_dict_add.keys():
+            data_dict_add[table] = pd.DataFrame()
+        if table not in data_dict_buoy.keys():
+            data_dict_buoy[table] = pd.DataFrame()
+
+# Perform QC
+report_quality, location_quality, report_time_quality, quality_flags, history = do_qc(
+    data_dict_qc=data_dict_qc,
+    report_quality=report_quality,
+    location_quality=location_quality,
+    report_time_quality=report_time_quality,
+    quality_flags=quality_flags,
+    history=history,
+    params=params,
+    ext_path=ext_path,
+    data_dict_add=data_dict_add,
+    data_dict_buoy=data_dict_buoy,
+    perform_qc=not params.no_qc_suite,
+)
+
+# Optionally, copy quality_flags
+if params.no_qc_suite is False and params.qc_settings["copies"]:
+    for table, table_cp in params.qc_settings["copies"].items():
+        if table in data_dict.keys():
+            intersec = quality_flags[table].index.intersection(
+                quality_flags[table_cp].index
+            )
+            quality_flags[table].loc[intersec] = quality_flags[table_cp].loc[intersec]
+        else:
+            logging.warning(f"Could not copy {table}.")
+
+# Update data_dict with reworked QC columns
+update_data_dict(
+    data_dict,
+    report_quality,
+    location_quality,
+    report_time_quality,
+    quality_flags,
+    history,
+)
+
+# WRITE QC FLAGS TO DATA ------------------------------------------------------
+print("After QC")
+for table, df in data_dict.items():
+    if table == "header":
+        ql_dict[table]["report_quality_flag"] = value_counts(df["report_quality"])
+        ql_dict[table]["location_quality_flag"] = value_counts(df["location_quality"])
+        ql_dict[table]["report_time_quality_flag"] = value_counts(
+            df["report_time_quality"]
+        )
+        print("report_quality: ", ql_dict[table]["report_quality_flag"])
+        print("location_quality: ", ql_dict[table]["location_quality_flag"])
+        print("report_time_quality: ", ql_dict[table]["report_time_quality_flag"])
+    else:
+        ql_dict[table]["quality_flag"] = value_counts(df["quality_flag"])
+        print(table, ": ", ql_dict[table]["quality_flag"])
+        pqo.latitude_variable_plot(
+            df["latitude"],
+            df["observation_value"],
+            df["quality_flag"],
+            filename=os.path.join(
+                params.level_ql_path, f"{table}_{params.fileID}_lat_var.png"
+            ),
+        )
+        pqo.latitude_longitude_plot(
+            df["latitude"],
+            df["longitude"],
+            df["quality_flag"],
+            filename=os.path.join(
+                params.level_ql_path, f"{table}_{params.fileID}_lat_lon.png"
+            ),
+        )
+
+    write_cdm_tables(params, df, tables=table)
 
 # CHECKOUT --------------------------------------------------------------------
 logging.info("Saving json quicklook")

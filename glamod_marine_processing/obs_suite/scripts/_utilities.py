@@ -10,7 +10,8 @@ import logging
 import os
 import sys
 
-from cdm_reader_mapper import read_tables
+import pandas as pd
+from cdm_reader_mapper import DataBundle, read_tables
 
 from glamod_marine_processing.utilities import save_simplejson
 
@@ -28,6 +29,7 @@ add_data_paths = {
 }
 
 chunksizes = {
+    "C-RAID_1.1": None,
     "C-RAID_1.2": None,
     "ICOADS_R3.0.2T": 200000,
     "ICOADS_R3.0.0T": 200000,
@@ -151,7 +153,6 @@ class script_setup:
             clean_level(filenames)
 
 
-# This is for json to handle dates
 def date_handler(obj):
     """Handle date."""
     if isinstance(obj, (datetime.datetime, datetime.date)):
@@ -193,16 +194,28 @@ def save_quicklook(params, ql_dict, date_handler):
     )
 
 
-def read_cdm_tables(params, table):
+def read_cdm_tables(params, table, ifile=None):
     """Read CDM tables."""
-    # if isinstance(table, str):
-    #    table = [table]
-    return read_tables(
-        params.prev_level_path,
-        suffix=params.prev_fileID,
-        cdm_subset=table,
-        na_values="null",
-    )
+    kwargs = {
+        "cdm_subset": table,
+        "na_values": "null",
+    }
+    if ifile is None:
+        ifile_pattern = os.path.join(
+            params.prev_level_path, f"{table}*{params.prev_fileID}*"
+        )
+        if len(glob.glob(ifile_pattern)) == 0:
+            logging.warning(f"CDM file pattern not found: {ifile_pattern}.")
+            return DataBundle()
+        return read_tables(params.prev_level_path, suffix=params.prev_fileID, **kwargs)
+
+    if not os.path.isfile(ifile):
+        logging.warning(f"CDM file not found: {ifile}.")
+        return DataBundle()
+
+    db = read_tables(ifile, **kwargs)
+    db.data.columns = pd.MultiIndex.from_tuples([table, col] for col in db.data.columns)
+    return db
 
 
 def write_cdm_tables(params, df, tables=[], outname=None, **kwargs):
@@ -219,7 +232,7 @@ def write_cdm_tables(params, df, tables=[], outname=None, **kwargs):
         try:
             df = df[table]
         except KeyError:
-            logging.info(f"{table} not found.")
+            logging.info(f"Table {table} is already selected.")
         df.to_csv(
             outname,
             index=False,

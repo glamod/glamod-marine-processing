@@ -8,7 +8,9 @@ import os
 from pathlib import Path
 
 import pandas as pd
-from cdm_reader_mapper import cdm_mapper
+from cdm_reader_mapper import read_tables
+from cdm_reader_mapper.cdm_mapper import properties
+from joblib import Parallel, delayed
 
 
 def get_year_month(df, time_axis):
@@ -38,8 +40,15 @@ def concat_unknow_date_files(idir, odir, table, release, update, prev_deck_list)
         time_axis = "date_time"
     for prev_deck in prev_deck_list:
         table_dir = os.path.join(idir, prev_deck)
-        table_df = cdm_mapper.read_tables(table_dir, cdm_subset=table)
+        table_df = read_tables(table_dir, cdm_subset=table)
         if table_df.empty:
+            continue
+        next = False
+        try:
+            table_df = table_df[table]
+        except KeyError:
+            next = True
+        if next is True:
             continue
         year_month = get_year_month(table_df, time_axis)
         for ym, df in table_df.groupby(year_month):
@@ -74,7 +83,7 @@ def concat_known_date_files(idir, odir, table, release, update, prev_deck_list):
                 i += 1
 
 
-def post_processing(
+def merge(
     idir,
     odir,
     release=None,
@@ -82,6 +91,7 @@ def post_processing(
     prev_deck_list=None,
     date_avail=False,
     cdm_tables=True,
+    parallel=False,
     overwrite=False,
 ):
     """Merge decks from deck list into one single new deck.
@@ -100,8 +110,10 @@ def post_processing(
         List of previous level1a decks.
     date_avail, bool
         Set True if date information is in file names.
-    cdm_tables, bool
+    cdm_tables: bool
         Use cdm table names.
+    parallel: bool
+        Compute tables in parallel.
     overwrite: bool
         If True, overwrite already existing files.
     """
@@ -110,25 +122,27 @@ def post_processing(
             Path(x).name for x in glob.glob(os.path.join(idir, "log", "*"))
         ]
     if cdm_tables is True:
-        tables = cdm_mapper.properties.cdm_tables
+        tables = properties.cdm_tables
     else:
         tables = ["*"]
-    for table in tables:
-        if date_avail is True:
-            concat_known_date_files(
-                idir=idir,
-                odir=odir,
-                table=table,
-                release=release,
-                update=update,
-                prev_deck_list=prev_deck_list,
-            )
-        else:
-            concat_unknow_date_files(
-                idir=idir,
-                odir=odir,
-                table=table,
-                release=release,
-                update=update,
-                prev_deck_list=prev_deck_list,
-            )
+        parallel = False
+
+    if date_avail is True:
+        concat_func = concat_known_date_files
+    else:
+        concat_func = concat_unknow_date_files
+
+    kwargs = {
+        "idir": idir,
+        "odir": odir,
+        "release": release,
+        "update": update,
+        "prev_deck_list": prev_deck_list,
+    }
+
+    if parallel is True:
+        Parallel(n_jobs=len(tables))(
+            delayed(concat_func)(table=table, **kwargs) for table in tables
+        )
+    else:
+        [concat_func(table=table, **kwargs) for table in tables]

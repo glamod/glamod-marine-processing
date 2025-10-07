@@ -6,7 +6,7 @@ from cdm_reader_mapper.common.getting_files import load_file
 def load_noc_anc_info(**kwargs):
     """Load NOC ANC INFO data from cdm-testdata."""
     load_file(
-        "NOC_ANC_INFO/json_files/dck992.json",
+        "NOC_ANC_INFO/v2025/dck992.json",
         **kwargs,
     )
 
@@ -14,9 +14,31 @@ def load_noc_anc_info(**kwargs):
 def load_pub47(**kwargs):
     """Load Pub47 data from cdm-testdata."""
     load_file(
-        "Pub47/monthly/pub47-2022-01.csv",
+        "Pub47/v202501/pub47_2022_01.csv",
         **kwargs,
     )
+
+
+def load_metofficeqc(**kwargs):
+    """Load metoffice QC data."""
+    for efile in [
+        "AT_pentad_climatology",
+        "AT_pentad_stdev_climatology",
+        "DPT_pentad_climatology",
+        "DPT_pentad_stdev_climatology",
+        "HadSST2_pentad_climatology",
+        "HadSST2_pentad_stdev_climatology",
+        "OSTIA_buddy_range_sampling_error",
+        "OSTIA_compare_1x1x5box_to_buddy_average",
+        "OSTIA_compare_one_ob_to_1x1x5box",
+        "SLP_pentad_climatology",
+        "SLP_pentad_stdev_climatology",
+        "SST_daily_climatology_january",
+    ]:
+        load_file(
+            f"external_files/{efile}.nc",
+            **kwargs,
+        )
 
 
 def load_input(dataset, level, settings, cache_dir):

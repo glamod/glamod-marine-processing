@@ -145,6 +145,9 @@ else:
 if isinstance(source_pattern, dict):
     source_pattern = source_pattern[dataset]
 
+if not isinstance(source_pattern, list):
+    source_pattern = [source_pattern]
+
 PYSCRIPT = f"{level}.py"
 MACHINE = script_config["scripts"]["machine"].lower()
 overwrite = script_config["overwrite"]
@@ -198,6 +201,10 @@ t_mm = script_config["job_time_min"]
 t = ":".join([t_hh, t_mm, "00"])
 
 logging.info("SUBMITTING ARRAYS...")
+if script_config["parallel_jobs"] is True:
+    taskfarm_files = os.path.join(log_dir, "taskfarm.tasks")
+    with open(taskfarm_files, "w") as f:
+        pass
 
 for sid_dck in process_list:
 
@@ -207,8 +214,12 @@ for sid_dck in process_list:
     sid_dck_log_dir = os.path.join(log_dir, sid_dck)
     mkdir(sid_dck_log_dir)
     file_ = os.path.join(sid_dck_log_dir, sid_dck)
-    job_file = f"{file_}.slurm"
-    taskfarm_file = f"{file_}.tasks"
+    if script_config["parallel_jobs"] is True:
+        taskfarm_file = taskfarm_files
+        mode = "a"
+    else:
+        taskfarm_file = f"{file_}.tasks"
+        mode = "w"
 
     # check is separate configuration for this source / deck
     config = deepcopy(script_config)
@@ -219,11 +230,21 @@ for sid_dck in process_list:
 
     year_init = int(get_year(release_periods, sid_dck, "year_init"))
     year_end = int(get_year(release_periods, sid_dck, "year_end"))
-    source_files = glob.glob(os.path.join(level_source_dir, sid_dck, source_pattern))
-    if level in slurm_preferences.one_task:
-        source_files = [source_files[0]]
+    source_files = []
+    for pattern in source_pattern:
+        sfiles = glob.glob(os.path.join(level_source_dir, sid_dck, pattern))
+        if len(sfiles) == 0:
+            continue
+        if level in slurm_preferences.one_task:
+            source_files = [sfiles[0]]
+            break
+        source_files.extend(sfiles)
 
     array_size = len(source_files)
+    if array_size == 0:
+        logging.info("No tasks to be calculated")
+        continue
+
     if level in slurm_preferences.TaskPNi.keys():
         TaskPNi = slurm_preferences.TaskPNi[level]
     else:
@@ -246,8 +267,7 @@ for sid_dck in process_list:
         else:
             ti = t
 
-    calc_tasks = False
-    with open(taskfarm_file, "w") as fh:
+    with open(taskfarm_file, mode) as fh:
         for source_file in source_files:
             yyyy, mm = get_yyyymm(source_file)
             add = is_in_range(yyyy, mm, year_init, year_end)
@@ -291,41 +311,78 @@ for sid_dck in process_list:
                 )
             )
             save_json(script_config, config_file_)
-            calc_tasks = True
-
-    if calc_tasks is False:
-        logging.info("No tasks to be calculated")
-        continue
-
-    header = read_txt(os.path.join(lotus_dir, "header", f"slurm_header_{MACHINE}.txt"))
-
-    with open(job_file, "w") as fh:
-        for line in header:
-            line = eval(line)  # noqa: S307
-            line = f"{line}\n"
-            fh.writelines(line)
 
     logging.info(f"{sid_dck}: launching array")
     logging.info(f"Script {taskfarm_file} was created.")
     if script_config["submit_jobs"] is True:
+        job_file = f"{file_}.slurm"
+        header = read_txt(
+            os.path.join(lotus_dir, "header", f"slurm_header_{MACHINE}.txt")
+        )
+        with open(job_file, "w") as fh:
+            for line in header:
+                line = eval(line)  # noqa: S307
+                line = f"{line}\n"
+                fh.writelines(line)
         process = f"jid=$(sbatch {job_file} | cut -f 4 -d' ') && echo $jid"
         logging.info(f"process launching: {process}")
         jid = launch_process(process)
-    else:
-        subprocess.call(["/bin/chmod", "u+x", taskfarm_file], shell=False)
-        if script_config["run_jobs"] is True:
-            logging.info("Run jobs interactively.")
-            subprocess.call(["/bin/sh", taskfarm_file], shell=False)
-            logging.info(f"Check whether jobs was successful: {log_diri}")
-        elif script_config["parallel_jobs"] is True:
-            logging.info("Run jobs interactively in parallel.")
-            subprocess.call(
-                [
-                    "/bin/parallel",
-                    "--jobs",
-                    script_config["n_max_jobs"],
-                    "::::",
-                    taskfarm_file,
-                ],
-                shell=False,
+        continue
+
+    subprocess.call(["/bin/chmod", "u+x", taskfarm_file], shell=False)
+    if script_config["parallel_tasks"] is True:
+        logging.info("Run tasks per job interactively in parallel.")
+        cmd = [
+            "/bin/parallel",
+            "--jobs",
+            script_config["n_max_jobs"],
+            "::::",
+            taskfarm_file,
+        ]
+        if script_config["nohup"] is True:
+            nohup_out = os.path.join(sid_dck_log_dir, f"nohup_{pattern}.out")
+            nohup_err = os.path.join(sid_dck_log_dir, f"nohup_{pattern}.err")
+            nohup_pid = os.path.join(sid_dck_log_dir, f"nohup_{pattern}.pid")
+            cdm = ["nohup"] + cmd
+            with open(nohup_out, "w") as out, open(nohup_err, "w") as err:
+                proc = subprocess.Popen(
+                    cmd,
+                    stdout=out,
+                    stderr=err,
+                    preexec_fn=os.setpgrp,
+                )
+
+            with open(nohup_pid, "w") as pidf:
+                pidf.write(str(proc.pid))
+
+        continue
+
+    if script_config["run_jobs"] is True:
+        logging.info("Run jobs interactively.")
+        subprocess.call(["/bin/sh", taskfarm_file], shell=False)
+        logging.info(f"Check whether jobs was successful: {log_diri}")
+
+if script_config["parallel_jobs"] is True:
+    subprocess.call(["/bin/chmod", "u+x", taskfarm_files], shell=False)
+    logging.info("Run jobs interactively in parallel.")
+    cmd = [
+        "/bin/parallel",
+        "--jobs",
+        script_config["n_max_jobs"],
+        "::::",
+        taskfarm_files,
+    ]
+    if script_config["nohup"] is True:
+        nohup_out = os.path.join(sid_dck_log_dir, f"nohup_{pattern}.out")
+        nohup_err = os.path.join(sid_dck_log_dir, f"nohup_{pattern}.err")
+        nohup_pid = os.path.join(sid_dck_log_dir, f"nohup_{pattern}.pid")
+        cdm = ["nohup"] + cmd
+        with open(nohup_out, "w") as out, open(nohup_err, "w") as err:
+            proc = subprocess.Popen(
+                cmd,
+                stdout=out,
+                stderr=err,
+                preexec_fn=os.setpgrp,
             )
+        with open(nohup_pid, "w") as pidf:
+            pidf.write(str(proc.pid))

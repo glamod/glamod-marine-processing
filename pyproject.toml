@@ -287,4 +287,3 @@ ignore_names = []
 min_confidence = 90
 paths = ["glamod_marine_processing", "tests"]
 sort_by_size = true
-

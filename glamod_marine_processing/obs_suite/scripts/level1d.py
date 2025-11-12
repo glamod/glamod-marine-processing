@@ -82,7 +82,13 @@ reload(logging)  # This is to override potential previous config of logging
 def map_to_cdm(md_model, meta_df, log_level="INFO"):
     """Map to CDM."""
     # Atts is a minimum info on vars the cdm module requires
-    meta_db = map_model(meta_df, imodel=md_model, log_level=log_level)
+    meta_db = map_model(
+        meta_df,
+        imodel=md_model,
+        drop_duplicates=False,
+        drop_missing_obs=False,
+        log_level=log_level,
+    )
     for table in properties.cdm_tables:
         meta_db[table] = meta_db[table].astype(
             "object"

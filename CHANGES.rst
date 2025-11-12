@@ -10,6 +10,7 @@ Contributors to this version: Ludwig Lierhammer (:user:`ludwiglierhammer`)
 Bug fixes
 ^^^^^^^^^
 * ``obs_suite``: level1e the data output format is equal to the data input format again (:issue:`189`, :pull:`210`)
+* ``obs_suite``: level1d Pub47 mapping is working again with cdm_reader_mapper.map_model(..., drop_duplicates=False, drop_missing_obs=False) (:issue:`187`, :pull:`215`)
 
 Internal changes
 ^^^^^^^^^^^^^^^^

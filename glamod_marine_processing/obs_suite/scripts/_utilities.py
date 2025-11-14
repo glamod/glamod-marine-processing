@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import sys
+from pathlib import Path
 
 import pandas as pd
 from cdm_reader_mapper import DataBundle, read_tables
@@ -36,25 +37,109 @@ chunksizes = {
 }
 
 level3_columns = [
-    ("header", "station_name"),
-    ("header", "primary_station_id"),
-    ("header", "report_id"),
-    ("observations-slp", "observation_id"),
-    ("header", "longitude"),
-    ("header", "latitude"),
-    ("header", "height_of_station_above_sea_level"),
-    ("header", "report_timestamp"),
-    ("header", "report_meaning_of_timestamp"),
-    ("header", "report_duration"),
-    ("observations-slp", "observed_variable"),
-    ("observations-slp", "units"),
-    ("observations-slp", "observation_value"),
-    ("observations-slp", "quality_flag"),
-    ("header", "source_id"),
-    ("observations-slp", "data_policy_licence"),
-    ("header", "report_type"),
-    ("observations-slp", "value_significance"),
+    "station_name",
+    "primary_station_id",
+    "report_id",
+    "observation_id",
+    "longitude",
+    "latitude",
+    "height_of_station_above_sea_level",
+    "report_timestamp",
+    "report_meaning_of_time_stamp",
+    "report_duration",
+    "observed_variable",
+    "units",
+    "observation_value",
+    "quality_flag",
+    "source_id",
+    "data_policy_licence",
+    "platform_type",
+    "report_type",
+    "value_significance",
 ]
+
+level3_mappings = {
+    "header": {
+        "station_name": "station_name",
+        "primary_station_id": "primary_station_id",
+        "report_id": "report_id",
+        "longitude": "longitude",
+        "latitude": "latitude",
+        "height_of_station_above_sea_level": "height_of_station_above_sea_level",
+        "report_timestamp": "report_timestamp",
+        "report_meaning_of_time_stamp": "report_meaning_of_timestamp",
+        "report_duration": "report_duration",
+        "source_id": "source_id",
+        "report_type": "report_type",
+        "platform_type": "platform_type",
+    },
+    "observations": {
+        "observation_id": "observation_id",
+        "observed_variable": "observed_variable",
+        "units": "units",
+        "observation_value": "observation_value",
+        "quality_flag": "quality_flag",
+        "data_policy_licence": "data_policy_licence",
+        "value_significance": "value_significance",
+    },
+}
+
+level3_dtypes = {
+    "station_name": "string",
+    "primary_station_id": "string",
+    "report_id": "string",
+    "observation_id": "string",
+    "longitude": "float64",
+    "latitude": "float64",
+    "height_of_station_above_sea_level": "float64",
+    "report_timestamp": "datetime64[ns, UTC]",
+    "report_meaning_of_time_stamp": "Int64",
+    "report_duration": "Int64",
+    "observed_variable": "Int64",
+    "units": "Int64",
+    "observation_value": "float64",
+    "quality_flag": "Int64",
+    "source_id": "Int64",
+    "data_policy_licence": "Int64",
+    "platform_type": "Int64",
+    "report_type": "Int64",
+    "value_significance": "Int64",
+}
+
+
+def add_utc_offset(series):
+    """Add utc offset +00 to datetime object string."""
+    return series.astype(str) + "+00"
+
+
+def get_integer_source_id(series):
+    """Rank source id as integer value."""
+    return series.rank(method="dense").astype(int)
+
+
+def set_default_report_duration(series):
+    """Set default report_duration 8 (10 minutes)."""
+    s = series[:].copy()
+    s[:] = "8"
+    return s
+
+
+level3_conversions = {
+    "report_timestamp": add_utc_offset,
+    "source_id": get_integer_source_id,
+    "report_duration": set_default_report_duration,
+}
+
+
+def convert_dtypes(df, dtypes):
+    """Convert data types."""
+    for col, dtype in dtypes.items():
+        if dtype.startswith("datetime64[ns]"):
+            df[col] = pd.to_datetime(df[col], errors="coerce").dt.tz_convert("UTC")
+        else:
+            df[col] = df[col].astype(dtype)
+
+    return df
 
 
 # Functions--------------------------------------------------------------------
@@ -218,27 +303,48 @@ def read_cdm_tables(params, table, ifile=None):
     return db
 
 
-def write_cdm_tables(params, df, tables=[], outname=None, **kwargs):
+def write_cdm_tables(
+    params, df, tables=[], outname=None, mode="csv", dtypes={}, **kwargs
+):
     """Write table to disk."""
     if df.empty:
         return
     if isinstance(tables, str):
         tables = [tables]
     for table in tables:
+        if mode == "csv":
+            ext = "psv"
+        elif mode == "parquet":
+            ext = "pq"
+        else:
+            raise ValueError(f"Unknown mode: {mode}. Use 'csv' or 'parquet'.")
         if outname is None:
             outname = os.path.join(
-                params.level_path, f"{FFS.join([table, params.fileID])}.psv"
+                params.level_path, f"{FFS.join([table, params.fileID])}"
             )
+        p = Path(outname)
+        if p.suffix == "":
+            outname = f"{outname}.{ext}"
         try:
             df = df[table]
         except KeyError:
             logging.info(f"Table {table} is already selected.")
-        df.to_csv(
-            outname,
-            index=False,
-            sep=delimiter,
-            header=True,
-            mode="w",
-            na_rep="null",
-            **kwargs,
-        )
+        df = convert_dtypes(df, dtypes)
+        if mode == "csv":
+            df.to_csv(
+                outname,
+                index=False,
+                sep=delimiter,
+                header=True,
+                mode="w",
+                na_rep="null",
+                **kwargs,
+            )
+        elif mode == "parquet":
+            df.to_parquet(
+                outname,
+                index=False,
+                engine="pyarrow",
+                compression="snappy",
+                **kwargs,
+            )

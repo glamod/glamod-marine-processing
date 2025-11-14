@@ -30,10 +30,21 @@ from __future__ import annotations
 
 import datetime
 import logging
+import os
 import sys
 from importlib import reload
 
-from _utilities import level3_columns, read_cdm_tables, script_setup, write_cdm_tables
+import pandas as pd
+from _utilities import (
+    level3_columns,
+    level3_conversions,
+    level3_dtypes,
+    level3_mappings,
+    read_cdm_tables,
+    script_setup,
+    write_cdm_tables,
+)
+from cdm_reader_mapper.cdm_mapper import properties
 
 reload(logging)  # This is to override potential previous config of logging
 
@@ -41,13 +52,40 @@ reload(logging)  # This is to override potential previous config of logging
 # FUNCTIONS -------------------------------------------------------------------
 def process_table(table_df):
     """Process table."""
-    cdm_obs_core_df = table_df[level3_columns]
-    new_cols = [col[1] for col in cdm_obs_core_df.columns]
-    cdm_obs_core_df.columns = new_cols
+    tables = table_df.columns.get_level_values(0).unique().tolist()
+    header_mappings = level3_mappings["header"]
+    observations_mappings = level3_mappings["observations"]
 
-    cdm_obs_core_df = cdm_obs_core_df[cdm_obs_core_df["observation_value"].notnull()]
+    header_df = table_df["header"][list(header_mappings.values())].copy()
+    header_df.columns = [c for c in header_mappings.keys()]
 
-    write_cdm_tables(params, cdm_obs_core_df, tables="pressure-data")
+    for table in tables:
+        if table == "header":
+            continue
+        obs_df = table_df[table][list(observations_mappings.values())].copy()
+        obs_df.columns = [c for c in observations_mappings.keys()]
+        obs_df = pd.concat([header_df, obs_df], axis=1)
+        obs_df = obs_df[level3_columns]
+        obs_df = obs_df.dropna(subset=["observation_value"], ignore_index=True)
+
+        for column, func in level3_conversions.items():
+            obs_df[column] = func(obs_df[column])
+
+        params.fileID = (
+            f"insitu-observations-surface-marine_{params.year}-{params.month}"
+        )
+        outname = os.path.join(
+            params.level_path,
+            f"insitu-{table}-surface-marine_{params.year}-{params.month}",
+        )
+        write_cdm_tables(
+            params,
+            obs_df,
+            tables=table,
+            outname=outname,
+            dtypes=level3_dtypes,
+            mode="parquet",
+        )
 
 
 # MAIN ------------------------------------------------------------------------
@@ -69,11 +107,7 @@ try:
 except AttributeError:  # for python < 3.11
     history_tstmp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
-obs_table = "observations-slp"
-header_table = "header"
-cdm_tables = [header_table, obs_table]
-
-table_df = read_cdm_tables(params, cdm_tables)
+table_df = read_cdm_tables(params, properties.cdm_tables)
 
 if not table_df.empty:
     process_table(table_df)

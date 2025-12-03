@@ -63,7 +63,7 @@ which_tables = {
     "level1d": table_names_next,
     "level1e": table_names_next,
     "level2": table_names_next,
-    "level3": table_names_next,
+    "level3": "observations-slp",
 }
 
 pattern = {
@@ -75,7 +75,7 @@ pattern = {
     "level2": "header-icoads_r???_d???_????-??-??_subset.psv",
     "level3": "header-icoads_r???_d???_????-??-??_subset.psv",
 }
-pattern_out = {"level3": f"pressure-data-2022-01-{release}-000000.psv"}
+pattern_out = {"level3": "insitu-surface-marine_2022-01.psv"}
 
 manipulation = {
     "level1b": {
@@ -497,6 +497,8 @@ manipulation = {
         ("header", "longitude"),
         ("header", "latitude"),
         ("header", "height_of_station_above_sea_level"),
+        ("observations-slp", "observation_height_above_station_surface"),
+        ("observations-slp", "z_coordinate"),
         ("header", "report_timestamp"),
         ("header", "report_meaning_of_timestamp"),
         ("header", "report_duration"),
@@ -506,6 +508,7 @@ manipulation = {
         ("observations-slp", "quality_flag"),
         ("header", "source_id"),
         ("observations-slp", "data_policy_licence"),
+        ("header", "platform_type"),
         ("header", "report_type"),
         ("observations-slp", "value_significance"),
     ],

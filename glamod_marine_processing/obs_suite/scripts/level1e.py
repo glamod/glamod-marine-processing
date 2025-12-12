@@ -136,7 +136,6 @@ from _utilities import (
     script_setup,
     write_cdm_tables,
 )
-from cdm_reader_mapper.cdm_mapper.tables.tables import get_cdm_atts
 from marine_qc import plot_qc_outcomes as pqo
 from marine_qc.auxiliary import isvalid
 
@@ -513,8 +512,7 @@ process_options = [
 params = script_setup(process_options, sys.argv)
 
 # Some other parameters -------------------------------------------------------
-cdm_atts = get_cdm_atts()
-obs_tables = [x for x in cdm_atts.keys() if x != "header"]
+obs_tables = [x for x in params.cdm_tables if x != "header"]
 
 # -----------------------------------------------------------------------------
 

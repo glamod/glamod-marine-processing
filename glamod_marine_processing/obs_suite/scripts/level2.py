@@ -52,7 +52,6 @@ from importlib import reload
 from pathlib import Path
 
 from _utilities import paths_exist, script_setup
-from cdm_reader_mapper.cdm_mapper import properties
 
 reload(logging)  # This is to override potential previous config of logging
 
@@ -87,7 +86,7 @@ paths_exist([params.level_excluded_path, params.level_reports_path])
 
 # DO THE DATA SELECTION -------------------------------------------------------
 # -----------------------------------------------------------------------------
-cdm_tables = properties.cdm_tables
+cdm_tables = params.cdm_tables
 obs_tables = [x for x in cdm_tables if x != "header"]
 
 with open(params.level2_list) as fileObj:

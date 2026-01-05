@@ -73,7 +73,6 @@ from _utilities import (
     write_cdm_tables,
 )
 from cdm_reader_mapper import map_model
-from cdm_reader_mapper.cdm_mapper import properties
 from cdm_reader_mapper.cdm_mapper.tables.tables import get_cdm_atts
 
 reload(logging)  # This is to override potential previous config of logging
@@ -89,7 +88,7 @@ def map_to_cdm(md_model, meta_df, log_level="INFO"):
         drop_missing_obs=False,
         log_level=log_level,
     )
-    for table in properties.cdm_tables:
+    for table in params.cdm_tables:
         meta_db[table] = meta_db[table].astype(
             "object"
         )  # meta_cdm[meta_cdm_columns] = meta_cdm_dict[table]["data"].astype("object")

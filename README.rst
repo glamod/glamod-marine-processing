@@ -154,8 +154,8 @@ This package was created with Cookiecutter_ and the `audreyfeldroy/cookiecutter-
         :target: https://github.com/glamod/glamod-marine-processing/tags
         :alt: Tag
 
-.. |zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.17404810.svg
-  	:target: https://doi.org/10.5281/zenodo.17404810
+.. |zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.18348998.svg
+  	:target: https://doi.org/10.5281/zenodo.18348998
  	:alt: DOI
 
 .. |noc| image:: https://img.shields.io/badge/Thanks%20to-NOC-blue.svg

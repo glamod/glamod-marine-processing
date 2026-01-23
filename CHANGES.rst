@@ -9,8 +9,14 @@ Contributors to this version: Ludwig Lierhammer (:user:`ludwiglierhammer`)
 
 New features and enhancements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-* ``obs_suite``: adding release8.1 configuration files (:pull:`226`)
+* ``obs_suite``: adding release8.1 configuration files (:pull:`226`, :pull:`216`)
 * ``obs_suite``: run level skripts in arbitrary order (:pull:`226`)
+* ``obs_suite``: additionally, write level3 result data to parquet file (:pull:`216`)
+
+Breaking changes
+^^^^^^^^^^^^^^^^
+* ``obs_suite``: level3 write all table results into one output DataFrame not only observations-slp (:pull:`216`)
+* ``obs_suite``: update level3 columns (:pull:`216`)
 
 Bug fixes
 ^^^^^^^^^

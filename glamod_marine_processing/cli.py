@@ -58,6 +58,7 @@ class Cli:
         dataset="",
         dataset_source="",
         dataset_destination="",
+        cdm_tables=None,
         data_directory=None,
         work_directory=None,
         config_file=None,
@@ -86,6 +87,7 @@ class Cli:
         self.dataset = dataset
         self.dataset_source = dataset_source
         self.dataset_destination = dataset_destination
+        self.cdm_tables = cdm_tables
         self.data_directory = data_directory
         self.work_directory = work_directory
         self.config_file = config_file
@@ -149,6 +151,7 @@ class Cli:
         config["release_destination"] = self.release_destination
         config["dataset_source"] = self.dataset_source
         config["dataset_destination"] = self.dataset_destination
+        config["cdm_tables"] = self.cdm_tables
 
         if self.data_directory is not None:
             config["paths"]["data_directory"] = self.data_directory
@@ -301,6 +304,12 @@ class Options:
             "-work_dir",
             "--work_directory",
             help="Directory path of the log and template files. By default, take directory path from machine-depending configuration file.",
+        )
+        self.cdm_tables = click.option(
+            "-tables",
+            "--cdm_tables",
+            multiple=True,
+            help="CDM tables to process (obs_suite).",
         )
         self.noc_version = click.option(
             "-noc_v",

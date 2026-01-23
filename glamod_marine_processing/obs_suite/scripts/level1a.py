@@ -263,9 +263,7 @@ if params.blacklisting:
         data_in_data = data_in.data
 
     for data in data_in_data:
-        cdm_tables = sorted(
-            properties.cdm_tables, key=lambda x: 0 if x == "header" else 1
-        )
+        cdm_tables = sorted(params.cdm_tables, key=lambda x: 0 if x == "header" else 1)
         for cdm_table in cdm_tables:
             inputs = params.blacklisting.get(cdm_table)
             if inputs is None:
@@ -321,7 +319,7 @@ if params.generic_ids:
 # 3. Map to common data model and output files
 if process:
     logging.info("Mapping to CDM")
-    tables = properties.cdm_tables
+    tables = params.cdm_tables
     io_dict.update({table: {} for table in tables})
     logging.debug(f"Mapping attributes: {data_in.dtypes}")
     data_in.map_model(log_level="INFO", inplace=True)

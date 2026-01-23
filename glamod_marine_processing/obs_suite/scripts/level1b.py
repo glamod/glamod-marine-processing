@@ -68,7 +68,6 @@ from _utilities import (  # table_to_csv,
     script_setup,
     write_cdm_tables,
 )
-from cdm_reader_mapper.cdm_mapper import properties
 
 reload(logging)  # This is to override potential previous config of logging
 
@@ -110,7 +109,7 @@ if params.correction_version != "null":
     logging.info(f"Setting corrections path to {L1b_main_corrections}")
     paths_exist(L1b_main_corrections)
 
-ql_dict = {table: {} for table in properties.cdm_tables}
+ql_dict = {table: {} for table in params.cdm_tables}
 
 # Do the data processing ------------------------------------------------------
 isChange = "1"
@@ -122,7 +121,7 @@ try:
 except AttributeError:  # for python < 3.11
     history_tstmp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
-tables = properties.cdm_tables
+tables = params.cdm_tables
 obs_tables = [table for table in tables if table != "header"]
 if params.delete_no_obs is True:
     report_ids = pd.Series()

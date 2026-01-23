@@ -114,7 +114,6 @@ from _utilities import (
     script_setup,
     write_cdm_tables,
 )
-from cdm_reader_mapper.cdm_mapper import properties
 
 reload(logging)  # This is to override potential previous config of logging
 
@@ -231,7 +230,7 @@ if params.noc_version:
 else:
     id_validation_path = ""
 
-ql_dict = {table: {} for table in properties.cdm_tables}
+ql_dict = {table: {} for table in params.cdm_tables}
 
 # DO THE DATA PROCESSING ------------------------------------------------------
 
@@ -335,7 +334,7 @@ for field in validated:
 # First header table, already open
 logging.info("Cleaning table header")
 process_table(table_db, table)
-obs_tables = [x for x in properties.cdm_tables if x != "header"]
+obs_tables = [x for x in params.cdm_tables if x != "header"]
 for table in obs_tables:
     table_pattern = FFS.join([table, params.prev_fileID]) + "*.psv"
     table_files = glob.glob(os.path.join(params.prev_level_path, table_pattern))

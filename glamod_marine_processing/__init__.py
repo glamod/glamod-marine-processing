@@ -9,4 +9,4 @@ from .split import split  # noqa
 
 __author__ = """Ludwig Lierhammer"""
 __email__ = "ludwiglierhammer@dwd.de"
-__version__ = "8.0.0"
+__version__ = "8.1.0"

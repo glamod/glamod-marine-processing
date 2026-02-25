@@ -4,7 +4,6 @@ import pandas as pd
 import pytest
 from cdm_reader_mapper import DataBundle, read_tables
 from cdm_reader_mapper.common.getting_files import load_file
-
 from marine_qc import (
     do_bayesian_buddy_check,
     do_climatology_check,
@@ -31,12 +30,7 @@ from marine_qc import (
     find_repeated_values,
     find_saturated_runs,
 )
-from marine_qc.auxiliary import (
-    failed,
-    passed,
-    untestable,
-    untested,
-)
+from marine_qc.auxiliary import failed, passed, untestable, untested
 from marine_qc.external_clim import Climatology
 
 
@@ -49,7 +43,9 @@ def _get_parameters(dataset="", release="", deck="", trange=""):
 
 @pytest.fixture(scope="session")
 def testdata():
-    cache_dir, input_dir, cdm_name = _get_parameters(dataset="ICOADS_R3.0.2T", release="r302", deck="d992", trange="2022-01-01")
+    cache_dir, input_dir, cdm_name = _get_parameters(
+        dataset="ICOADS_R3.0.2T", release="r302", deck="d992", trange="2022-01-01"
+    )
     tables = [
         "header",
         "observations-at",
@@ -82,7 +78,9 @@ def testdata():
                 errors="coerce",
             )
         else:
-            db_table.data["observation_value"] = db_table["observation_value"].astype(float)
+            db_table.data["observation_value"] = db_table["observation_value"].astype(
+                float
+            )
             db_table.data["latitude"] = db_table["latitude"].astype(float)
             db_table.data["longitude"] = db_table["longitude"].astype(float)
             db_table.data["date_time"] = pd.to_datetime(
@@ -146,7 +144,9 @@ def climdata_bayesian():
 
 @pytest.fixture(scope="session")
 def testdata_track():
-    cache_dir, input_dir, cdm_name = _get_parameters(dataset="ICOADS_R3.0.2T", release="r302", deck="PT2", trange="2016-04-11")
+    cache_dir, input_dir, cdm_name = _get_parameters(
+        dataset="ICOADS_R3.0.2T", release="r302", deck="PT2", trange="2016-04-11"
+    )
     tables = [
         "header",
         "observations-at",
@@ -163,18 +163,28 @@ def testdata_track():
     db_tables = read_tables(cache_dir, suffix=cdm_name, extension="psv")
     db_tables.data = db_tables.replace("null", None)
     for table in tables:
-        db_tables.data[(table, "latitude")] = db_tables[(table, "latitude")].astype(float)
-        db_tables.data[(table, "longitude")] = db_tables[(table, "longitude")].astype(float)
+        db_tables.data[(table, "latitude")] = db_tables[(table, "latitude")].astype(
+            float
+        )
+        db_tables.data[(table, "longitude")] = db_tables[(table, "longitude")].astype(
+            float
+        )
         if table == "header":
             db_tables.data[(table, "report_timestamp")] = pd.to_datetime(
                 db_tables[(table, "report_timestamp")],
                 format="%Y-%m-%d %H:%M:%S",
                 errors="coerce",
             )
-            db_tables.data[(table, "station_speed")] = db_tables[(table, "station_speed")].astype(float)
-            db_tables.data[(table, "station_course")] = db_tables[(table, "station_course")].astype(float)
+            db_tables.data[(table, "station_speed")] = db_tables[
+                (table, "station_speed")
+            ].astype(float)
+            db_tables.data[(table, "station_course")] = db_tables[
+                (table, "station_course")
+            ].astype(float)
         else:
-            db_tables.data[(table, "observation_value")] = db_tables[(table, "observation_value")].astype(float)
+            db_tables.data[(table, "observation_value")] = db_tables[
+                (table, "observation_value")
+            ].astype(float)
             db_tables.data[(table, "date_time")] = pd.to_datetime(
                 db_tables[(table, "date_time")],
                 format="%Y-%m-%d %H:%M:%S",
@@ -247,7 +257,9 @@ def test_do_position_check(testdata, apply_func):
 def test_do_date_check(testdata, apply_func):
     db_ = testdata["header"].copy()
     if apply_func is True:
-        results = db_.apply(lambda row: do_date_check(date=row["report_timestamp"]), axis=1)
+        results = db_.apply(
+            lambda row: do_date_check(date=row["report_timestamp"]), axis=1
+        )
     else:
         results = do_date_check(date=db_["report_timestamp"])
     expected = pd.Series(
@@ -274,7 +286,9 @@ def test_do_date_check(testdata, apply_func):
 def test_do_time_check(testdata, apply_func):
     db_ = testdata["header"].copy()
     if apply_func is True:
-        results = db_.apply(lambda row: do_time_check(date=row["report_timestamp"]), axis=1)
+        results = db_.apply(
+            lambda row: do_time_check(date=row["report_timestamp"]), axis=1
+        )
     else:
         results = do_time_check(date=db_["report_timestamp"])
     expected = pd.Series([untestable] + [passed] * 12)  # first entry is null
@@ -623,7 +637,9 @@ def test_do_slp_missing_value_clim_check(testdata, climdata, apply_func):
 
 
 @pytest.mark.parametrize("apply_func", [False, True])
-def test_do_slp_climatology_plus_stdev_with_lowbar_check(testdata, climdata, apply_func):
+def test_do_slp_climatology_plus_stdev_with_lowbar_check(
+    testdata, climdata, apply_func
+):
     db_ = testdata["observations-slp"].copy()
     climatology = Climatology.open_netcdf_file(
         climdata["SLP"]["mean"],
@@ -1201,7 +1217,9 @@ def test_do_wind_direction_hard_limit_check(testdata, apply_func):
     db_ = testdata["observations-wd"].copy()
     if apply_func is True:
         results = db_.apply(
-            lambda row: do_hard_limit_check(value=row["observation_value"], limits=[0, 360]),
+            lambda row: do_hard_limit_check(
+                value=row["observation_value"], limits=[0, 360]
+            ),
             axis=1,
         )
     else:
@@ -1270,7 +1288,9 @@ def test_do_spike_check(testdata_track):
     db_.data.loc[162, ("observations-at", "observation_value")] = 1000.0
     db_.data.loc[174, ("observations-at", "observation_value")] = 1000.0
     db_.data.loc[198, ("observations-at", "observation_value")] = 1000.0
-    groups = db_.groupby([("header", "primary_station_id")], group_keys=False, sort=False)
+    groups = db_.groupby(
+        [("header", "primary_station_id")], group_keys=False, sort=False
+    )
     results = groups.apply(
         lambda track: do_spike_check(
             value=track[("observations-at", "observation_value")],
@@ -1299,7 +1319,9 @@ def test_do_track_check(testdata_track):
     db_.data.loc[24, ("header", "latitude")] = -23.0
     db_.data.loc[48, ("header", "latitude")] = -23.0
 
-    groups = db_.groupby([("header", "primary_station_id")], group_keys=False, sort=False)
+    groups = db_.groupby(
+        [("header", "primary_station_id")], group_keys=False, sort=False
+    )
     results = groups.apply(
         lambda track: do_track_check(
             vsi=track[("header", "station_speed")],
@@ -1330,7 +1352,9 @@ def test_do_track_check_array(testdata_track):
     db_.data.loc[24, ("header", "latitude")] = -23.0
     db_.data.loc[48, ("header", "latitude")] = -23.0
 
-    groups = db_.groupby([("header", "primary_station_id")], group_keys=False, sort=False)
+    groups = db_.groupby(
+        [("header", "primary_station_id")], group_keys=False, sort=False
+    )
     results = groups.apply(
         lambda track: do_track_check(
             vsi=track[("header", "station_speed")],
@@ -1356,7 +1380,9 @@ def test_do_track_check_array(testdata_track):
 
 def test_do_few_check_passed(testdata_track):
     db_ = testdata_track.copy()
-    groups = db_.groupby([("header", "primary_station_id")], group_keys=False, sort=False)
+    groups = db_.groupby(
+        [("header", "primary_station_id")], group_keys=False, sort=False
+    )
     results = groups.apply(
         lambda track: do_few_check(
             value=track[("header", "latitude")],
@@ -1370,7 +1396,9 @@ def test_do_few_check_passed(testdata_track):
 def test_do_few_check_failed(testdata_track):
     db_ = testdata_track.copy()
     db_.data = db_.data[:2]
-    groups = db_.groupby([("header", "primary_station_id")], group_keys=False, sort=False)
+    groups = db_.groupby(
+        [("header", "primary_station_id")], group_keys=False, sort=False
+    )
     results = groups.apply(
         lambda track: do_few_check(
             value=track[("header", "latitude")],
@@ -1384,7 +1412,9 @@ def test_do_few_check_failed(testdata_track):
 
 def test_do_iquam_track_check(testdata_track):
     db_ = testdata_track.copy()
-    groups = db_.groupby([("header", "primary_station_id")], group_keys=False, sort=False)
+    groups = db_.groupby(
+        [("header", "primary_station_id")], group_keys=False, sort=False
+    )
     results = groups.apply(
         lambda track: do_iquam_track_check(
             lat=track[("header", "latitude")],
@@ -1406,7 +1436,9 @@ def test_find_repeated_values(testdata_track):
     repeated = db_.data.loc[160, ("observations-at", "observation_value")]
     for i in range(161, 201):
         db_.data.loc[i, ("observations-at", "observation_value")] = repeated
-    groups = db_.groupby([("header", "primary_station_id")], group_keys=False, sort=False)
+    groups = db_.groupby(
+        [("header", "primary_station_id")], group_keys=False, sort=False
+    )
     results = groups.apply(
         lambda track: find_repeated_values(
             value=track[("observations-at", "observation_value")],
@@ -1426,7 +1458,9 @@ def test_find_saturated_runs(testdata_track):
     for i in range(161, 201):
         db_.data.loc[i, ("observations-at", "observation_value")] = 300.0
         db_.data.loc[i, ("observations-dpt", "observation_value")] = 300.0
-    groups = db_.groupby([("header", "primary_station_id")], group_keys=False, sort=False)
+    groups = db_.groupby(
+        [("header", "primary_station_id")], group_keys=False, sort=False
+    )
     results = groups.apply(
         lambda track: find_saturated_runs(
             at=track[("observations-at", "observation_value")],
@@ -1451,7 +1485,9 @@ def test_find_multiple_rounded_values(testdata_track):
     db_.data[("observations-at", "observation_value")] -= 273.15
     for i in range(160, 200):
         db_.data.loc[i, ("observations-at", "observation_value")] = 30.0
-    groups = db_.groupby([("header", "primary_station_id")], group_keys=False, sort=False)
+    groups = db_.groupby(
+        [("header", "primary_station_id")], group_keys=False, sort=False
+    )
     results = groups.apply(
         lambda track: find_multiple_rounded_values(
             value=track[("observations-at", "observation_value")],
@@ -1963,7 +1999,9 @@ def test_buddy_check(climdata_buddy, testdata_track):
         source_units="degC",
         target_units="K",
     )
-    stdev_climatology = Climatology.open_netcdf_file(climdata_buddy["stdev"], "sst", time_axis="time")
+    stdev_climatology = Climatology.open_netcdf_file(
+        climdata_buddy["stdev"], "sst", time_axis="time"
+    )
 
     limits = [[1, 1, 2], [2, 2, 2], [1, 1, 4], [2, 2, 4]]
     number_of_obs_thresholds = [[0, 5, 15, 100], [0], [0, 5, 15, 100], [0]]
@@ -1999,9 +2037,15 @@ def test_bayesian_buddy_check(climdata_bayesian, testdata_track):
         source_units="degC",
         target_units="K",
     )
-    ostia1_climatology = Climatology.open_netcdf_file(climdata_bayesian["ostia1"], "sst", time_axis="time")
-    ostia2_climatology = Climatology.open_netcdf_file(climdata_bayesian["ostia2"], "sst", time_axis="time")
-    ostia3_climatology = Climatology.open_netcdf_file(climdata_bayesian["ostia3"], "sst", time_axis="time")
+    ostia1_climatology = Climatology.open_netcdf_file(
+        climdata_bayesian["ostia1"], "sst", time_axis="time"
+    )
+    ostia2_climatology = Climatology.open_netcdf_file(
+        climdata_bayesian["ostia2"], "sst", time_axis="time"
+    )
+    ostia3_climatology = Climatology.open_netcdf_file(
+        climdata_bayesian["ostia3"], "sst", time_axis="time"
+    )
 
     db_ = testdata_track["observations-sst"].copy()
     db_.dropna(subset=["observation_value"], inplace=True, ignore_index=True)
@@ -2032,7 +2076,9 @@ def test_bayesian_buddy_check(climdata_bayesian, testdata_track):
 
 
 @pytest.mark.parametrize("return_method", ["passed", "failed"])
-def test_multiple_grouped_check(climdata_buddy, climdata_bayesian, testdata_track, return_method):
+def test_multiple_grouped_check(
+    climdata_buddy, climdata_bayesian, testdata_track, return_method
+):
     sst_climatology_mds = Climatology.open_netcdf_file(
         climdata_buddy["mean"],
         "sst",
@@ -2047,10 +2093,18 @@ def test_multiple_grouped_check(climdata_buddy, climdata_bayesian, testdata_trac
         source_units="degC",
         target_units="K",
     )
-    stdev_climatology_mds = Climatology.open_netcdf_file(climdata_buddy["stdev"], "sst", time_axis="time")
-    ostia1_climatology = Climatology.open_netcdf_file(climdata_bayesian["ostia1"], "sst", time_axis="time")
-    ostia2_climatology = Climatology.open_netcdf_file(climdata_bayesian["ostia2"], "sst", time_axis="time")
-    ostia3_climatology = Climatology.open_netcdf_file(climdata_bayesian["ostia3"], "sst", time_axis="time")
+    stdev_climatology_mds = Climatology.open_netcdf_file(
+        climdata_buddy["stdev"], "sst", time_axis="time"
+    )
+    ostia1_climatology = Climatology.open_netcdf_file(
+        climdata_bayesian["ostia1"], "sst", time_axis="time"
+    )
+    ostia2_climatology = Climatology.open_netcdf_file(
+        climdata_bayesian["ostia2"], "sst", time_axis="time"
+    )
+    ostia3_climatology = Climatology.open_netcdf_file(
+        climdata_bayesian["ostia3"], "sst", time_axis="time"
+    )
 
     data = testdata_track["observations-sst"].copy()
     data.dropna(subset=["observation_value"], inplace=True, ignore_index=True)
@@ -2068,8 +2122,18 @@ def test_multiple_grouped_check(climdata_buddy, climdata_bayesian, testdata_trac
                 "climatology": sst_climatology_mds,
                 "standard_deviation": stdev_climatology_mds,
                 "limits": [[1, 1, 2], [2, 2, 2], [1, 1, 4], [2, 2, 4]],
-                "number_of_obs_thresholds": [[0, 5, 15, 100], [0], [0, 5, 15, 100], [0]],
-                "multipliers": [[4.0, 3.5, 3.0, 2.5], [4.0], [4.0, 3.5, 3.0, 2.5], [4.0]],
+                "number_of_obs_thresholds": [
+                    [0, 5, 15, 100],
+                    [0],
+                    [0, 5, 15, 100],
+                    [0],
+                ],
+                "multipliers": [
+                    [4.0, 3.5, 3.0, 2.5],
+                    [4.0],
+                    [4.0, 3.5, 3.0, 2.5],
+                    [4.0],
+                ],
             },
         },
         "BAYESIAN": {

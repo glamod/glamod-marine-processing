@@ -93,17 +93,26 @@ def _obs_testing(dataset, level, capsys):
             keep_default_na=False,
         )
     else:
-        results = read_tables(result_dir, cdm_subset=tables).data
+        results = read_tables(
+            result_dir,
+            cdm_subset=tables,
+            data_format="parquet",
+            extension="pq",
+            suffix="release_8.0-000000",
+        ).data
 
     for table_name in tables:
         load_file(
-            f"{_settings.input_dir}/cdm_tables/{table_name}-{_settings.cdm}.psv",
+            f"{_settings.input_dir}/cdm_tables/{table_name}-{_settings.cdm}.parquet",
             cache_dir=f"{cache_dir_e}/{dataset}/{level}/{_settings.deck}",
             within_drs=False,
         )
 
     expected = read_tables(
-        os.path.join(cache_dir_e, dataset, level, _settings.deck), cdm_subset=tables
+        os.path.join(cache_dir_e, dataset, level, _settings.deck),
+        data_format="parquet",
+        cdm_subset=tables,
+        suffix="subset",
     )
     expected = manipulate_expected(expected.data, level)
 

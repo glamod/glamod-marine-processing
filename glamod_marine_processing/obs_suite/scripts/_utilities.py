@@ -311,6 +311,7 @@ def read_cdm_tables(params, table, ifile=None):
     kwargs = {
         "cdm_subset": table,
         "na_values": "null",
+        "data_format": "parquet",
     }
     if ifile is None:
         ifile_pattern = os.path.join(
@@ -331,7 +332,7 @@ def read_cdm_tables(params, table, ifile=None):
 
 
 def write_cdm_tables(
-    params, df, tables=[], outname=None, mode="csv", dtypes={}, **kwargs
+    params, df, tables=[], outname=None, mode="parquet", dtypes={}, **kwargs
 ):
     """Write table to disk."""
     if df.empty:

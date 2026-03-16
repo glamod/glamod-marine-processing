@@ -8,6 +8,8 @@ from _settings import get_settings
 from cdm_reader_mapper import read_tables
 from cdm_reader_mapper.common.getting_files import load_file
 
+from glamod_marine_processing.obs_suite.scripts._utilities import convert_dtypes
+
 cache_dir = ".pytest_cache"
 
 add_data = {
@@ -47,6 +49,8 @@ def _obs_testing(dataset, level, capsys):
             expected = expected.sort_values(by=("header", "report_id")).reset_index(
                 drop=True
             )
+        if hasattr(_settings, "dtypes") and level in _settings.dtypes.keys():
+            expected = convert_dtypes(expected, _settings.dtypes[level])
         return expected
 
     cache_dir_t = f"{cache_dir}/T{level}"
@@ -86,25 +90,33 @@ def _obs_testing(dataset, level, capsys):
 
     result_dir = f"{cache_dir_r}/{dataset}/{level}/{_settings.process_list}"
     if _settings.pattern_out.get(level):
-        results = pd.read_csv(
-            os.path.join(result_dir, _settings.pattern_out[level]),
-            delimiter="|",
-            dtype="object",
-            keep_default_na=False,
+        results = pd.read_parquet(
+            os.path.join(result_dir, _settings.pattern_out[level])
         )
     else:
-        results = read_tables(result_dir, cdm_subset=tables).data
+        results = read_tables(
+            result_dir,
+            cdm_subset=tables,
+            data_format="parquet",
+            extension="pq",
+            suffix="*",
+        ).data
 
     for table_name in tables:
         load_file(
-            f"{_settings.input_dir}/cdm_tables/{table_name}-{_settings.cdm}.psv",
+            f"{_settings.input_dir}/cdm_tables/{table_name}-{_settings.cdm}.pq",
             cache_dir=f"{cache_dir_e}/{dataset}/{level}/{_settings.deck}",
             within_drs=False,
         )
 
     expected = read_tables(
-        os.path.join(cache_dir_e, dataset, level, _settings.deck), cdm_subset=tables
+        os.path.join(cache_dir_e, dataset, level, _settings.deck),
+        data_format="parquet",
+        extension="pq",
+        cdm_subset=tables,
+        suffix="subset",
     )
+
     expected = manipulate_expected(expected.data, level)
 
     if "header" in results.columns:

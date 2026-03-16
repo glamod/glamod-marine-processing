@@ -11,6 +11,7 @@ import os
 import sys
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 from cdm_reader_mapper import DataBundle, read_tables
 from cdm_reader_mapper.cdm_mapper.properties import cdm_tables
@@ -98,10 +99,10 @@ level3_mappings = {
 }
 
 level3_dtypes = {
-    "station_name": "string",
-    "primary_station_id": "string",
-    "report_id": "string",
-    "observation_id": "string",
+    "station_name": object,
+    "primary_station_id": object,
+    "report_id": object,
+    "observation_id": object,
     "longitude": "float64",
     "latitude": "float64",
     "height_of_station_above_sea_level": "float64",
@@ -156,13 +157,16 @@ level3_conversions = {
 }
 
 
-def convert_dtypes(df, dtypes):
+def convert_dtypes(df, dtypes, null_label="null"):
     """Convert data types."""
+    df = df.replace(null_label, np.nan)
     for col, dtype in dtypes.items():
-        if dtype.startswith("datetime"):
+        if isinstance(dtype, object):
+            df[col] = df[col].astype(dtype)
+        elif dtype.startswith("datetime"):
             df[col] = pd.to_datetime(df[col], errors="coerce").dt.tz_convert("UTC")
         else:
-            df[col] = df[col].astype(dtype)
+            df[col] = pd.to_numeric(df[col], errors="coerce").astype(dtype)
     return df
 
 
@@ -311,6 +315,8 @@ def read_cdm_tables(params, table, ifile=None):
     kwargs = {
         "cdm_subset": table,
         "na_values": "null",
+        "data_format": "parquet",
+        "extension": "pq",
     }
     if ifile is None:
         ifile_pattern = os.path.join(
@@ -319,7 +325,14 @@ def read_cdm_tables(params, table, ifile=None):
         if len(glob.glob(ifile_pattern)) == 0:
             logging.warning(f"CDM file pattern not found: {ifile_pattern}.")
             return DataBundle()
-        return read_tables(params.prev_level_path, suffix=params.prev_fileID, **kwargs)
+
+        try:
+            return read_tables(
+                params.prev_level_path, suffix=params.prev_fileID, **kwargs
+            )
+        except ValueError:
+            logging.warning(f"CDM file {table} is empty.")
+            return DataBundle()
 
     if not os.path.isfile(ifile):
         logging.warning(f"CDM file not found: {ifile}.")
@@ -331,7 +344,14 @@ def read_cdm_tables(params, table, ifile=None):
 
 
 def write_cdm_tables(
-    params, df, tables=[], outname=None, mode="csv", dtypes={}, **kwargs
+    params,
+    df,
+    tables=[],
+    outname=None,
+    mode="parquet",
+    dtypes={},
+    dtype_conversion=False,
+    **kwargs,
 ):
     """Write table to disk."""
     if df.empty:
@@ -357,7 +377,10 @@ def write_cdm_tables(
             df = df[table]
         except KeyError:
             logging.info(f"Table {table} is already selected.")
-        df = convert_dtypes(df, dtypes)
+
+        if dtype_conversion is True:
+            df = convert_dtypes(df, dtypes)
+
         if mode == "csv":
             df.to_csv(
                 outname,

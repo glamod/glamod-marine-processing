@@ -68,14 +68,14 @@ which_tables = {
 
 pattern = {
     "level1a": "icoads_r???_d???_????-??-??_subset.imma",
-    "level1b": "header-icoads_r???_d???_????-??-??_subset.psv",
-    "level1c": "header-icoads_r???_d???_????-??-??_subset.psv",
-    "level1d": "header-icoads_r???_d???_????-??-??_subset.psv",
-    "level1e": "header-icoads_r???_d???_????-??-??_subset.psv",
-    "level2": "header-icoads_r???_d???_????-??-??_subset.psv",
-    "level3": "header-icoads_r???_d???_????-??-??_subset.psv",
+    "level1b": "header-icoads_r???_d???_????-??-??_subset.pq",
+    "level1c": "header-icoads_r???_d???_????-??-??_subset.pq",
+    "level1d": "header-icoads_r???_d???_????-??-??_subset.pq",
+    "level1e": "header-icoads_r???_d???_????-??-??_subset.pq",
+    "level2": "header-icoads_r???_d???_????-??-??_subset.pq",
+    "level3": "header-icoads_r???_d???_????-??-??_subset.pq",
 }
-pattern_out = {"level3": "insitu-surface-marine_2022-01.psv"}
+pattern_out = {"level3": "insitu-surface-marine_2022-01.pq"}
 
 manipulation = {
     "level1b": {
@@ -535,6 +535,33 @@ selection = {
         ("observations-slp", "value_significance"),
     ],
 }
+
+dtypes = {
+    "level3": {
+        "station_name": object,
+        "primary_station_id": object,
+        "report_id": object,
+        "observation_id": object,
+        "longitude": "float64",
+        "latitude": "float64",
+        "height_of_station_above_sea_level": "float64",
+        "observation_height_above_station_surface": "float64",
+        "z_coordinate": "float64",
+        "report_timestamp": "datetime64[ns, UTC]",
+        "report_meaning_of_time_stamp": "Int64",
+        "report_duration": "Int64",
+        "observed_variable": "Int64",
+        "units": "Int64",
+        "observation_value": "float64",
+        "quality_flag": "Int64",
+        "source_id": "Int64",
+        "data_policy_licence": "Int64",
+        "platform_type": "Int64",
+        "report_type": "Int64",
+        "value_significance": "Int64",
+    }
+}
+
 
 drops = {
     "level1a": [0, 5, 6, 7, 9, 10, 11],

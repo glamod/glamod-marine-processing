@@ -155,7 +155,13 @@ def process_table(table_db, table):
                 table_db.data["history"].loc[locs] + history_add
             )
 
-    write_cdm_tables(params, table_db, tables=table, columns=cdm_atts.get(table).keys())
+    table_db = table_db[cdm_atts.get(table).keys()]
+
+    write_cdm_tables(
+        params,
+        table_db,
+        tables=table,
+    )
 
 
 # END FUNCTIONS ---------------------------------------------------------------

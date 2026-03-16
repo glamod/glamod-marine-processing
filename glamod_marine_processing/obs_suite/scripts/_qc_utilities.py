@@ -10,10 +10,14 @@ import os
 
 import numpy as np
 import pandas as pd
-from marine_qc import qc_grouped_reports, qc_individual_reports, qc_sequential_reports
+from marine_qc import (
+    do_multiple_individual_check,
+    qc_grouped_reports,
+    qc_individual_reports,
+    qc_sequential_reports,
+)
 from marine_qc.auxiliary import isvalid
 from marine_qc.external_clim import Climatology
-from marine_qc.multiple_row_checks import do_multiple_row_check
 
 op_map = {
     "+": operator.add,
@@ -204,7 +208,7 @@ def do_qc_individual_header(
 
     # Do position check
     qc_dict_pos = copy.deepcopy(qc_dict_header.get("position_check", {}))
-    pos_qc = do_multiple_row_check(
+    pos_qc = do_multiple_individual_check(
         data=data_pos,
         qc_dict=qc_dict_pos,
         return_method=return_method,
@@ -224,7 +228,7 @@ def do_qc_individual_header(
 
     # Do time check
     qc_dict_tme = copy.deepcopy(qc_dict_header.get("time_check", {}))
-    time_qc = do_multiple_row_check(
+    time_qc = do_multiple_individual_check(
         data=data_time,
         qc_dict=qc_dict_tme,
         return_method=return_method,
@@ -257,7 +261,7 @@ def do_qc_individual_observation(
 
     # Deselect missing values
     qc_dict_miss = copy.deepcopy(qc_dict.get("observations", {}).get("missing_values"))
-    miss_qc = do_multiple_row_check(
+    miss_qc = do_multiple_individual_check(
         data=data,
         qc_dict=qc_dict_miss,
         return_method=return_method,
@@ -271,7 +275,7 @@ def do_qc_individual_observation(
     qc_dict_obs = copy.deepcopy(qc_dict.get("observations", {}).get(table, {}))
     update_filenames(preproc_dict, ext_path)
     open_netcdffiles(preproc_dict)
-    obs_qc = do_multiple_row_check(
+    obs_qc = do_multiple_individual_check(
         data=data,
         preproc_dict=preproc_dict,
         qc_dict=qc_dict_obs,

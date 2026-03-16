@@ -246,6 +246,7 @@ def convert_dtypes(df, table, mode="qc"):
         convert_dict_general = dtype_conversion["observations"]
         convert_dict_special = dtype_conversion[table]
         convert_dict = {**convert_dict_general, **convert_dict_special}
+
     for col, col_kwargs in convert_dict.items():
         dtype = col_kwargs["dtype"]
         if dtype == "datetime":
@@ -256,6 +257,7 @@ def convert_dtypes(df, table, mode="qc"):
                 df[col] = df[col].dt.strftime(fmt)
         else:
             if mode == "qc":
+                df[col] = pd.to_numeric(df[col], errors="coerce")
                 df[col] = df[col].astype(dtype)
             elif mode == "orig":
                 decimals = col_kwargs.get("decimal_places", 0)
@@ -699,6 +701,7 @@ for table, df in data_dict.items():
             ),
         )
 
+    df = df.fillna("null").astype(str)
     write_cdm_tables(params, df, tables=table)
 
 # CHECKOUT --------------------------------------------------------------------

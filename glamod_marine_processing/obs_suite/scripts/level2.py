@@ -137,25 +137,25 @@ try:
     include_param_list.append("header")
     if exclude_sid_dck:
         for table in cdm_tables:
-            pattern = os.path.join(params.prev_level_path, table + "*.psv")
+            pattern = os.path.join(params.prev_level_path, table + "*.pq")
             copyfiles(pattern, params.level_excluded_path)
     else:
         for table in exclude_param_list:
-            pattern = os.path.join(params.prev_level_path, table + "*.psv")
+            pattern = os.path.join(params.prev_level_path, table + "*.pq")
             copyfiles(pattern, params.level_excluded_path)
         for table in include_param_list:
             for year in range(year_init, year_end + 1):
                 pattern = os.path.join(
-                    params.prev_level_path, f"{table}-*{str(year)}-??-*.psv"
+                    params.prev_level_path, f"{table}-*{str(year)}-??-*.pq"
                 )
                 copyfiles(pattern, params.level_path, mode="included")
 
         # Send out of release period to excluded
         for year in range(left_min_period, year_init):
-            pattern = os.path.join(params.prev_level_path, f"*{str(year)}-??-*.psv")
+            pattern = os.path.join(params.prev_level_path, f"*{str(year)}-??-*.pq")
             copyfiles(pattern, params.level_excluded_path)
         for year in range(year_end + 1, right_max_period + 1):
-            pattern = os.path.join(params.prev_level_path, f"*{str(year)}-??-*.psv")
+            pattern = os.path.join(params.prev_level_path, f"*{str(year)}-??-*.pq")
             copyfiles(pattern, params.level_excluded_path)
 
     logging.info("Level2 data successfully created")

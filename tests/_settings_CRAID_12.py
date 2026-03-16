@@ -60,15 +60,15 @@ which_tables = {
 
 pattern = {
     "level1a": "craid_????-??-??_subset.nc",
-    "level1b": "header-craid_????-??-??_subset.psv",
-    "level1c": "header-craid_????-??-??_subset.psv",
-    "level1d": "header-craid_????-??-??_subset.psv",
-    "level1e": "header-craid_????-??-??_subset.psv",
-    "level2": "header-craid_????-??-??_subset.psv",
-    "level3": "header-craid_????-??-??_subset.psv",
+    "level1b": "header-craid_????-??-??_subset.pq",
+    "level1c": "header-craid_????-??-??_subset.pq",
+    "level1d": "header-craid_????-??-??_subset.pq",
+    "level1e": "header-craid_????-??-??_subset.pq",
+    "level2": "header-craid_????-??-??_subset.pq",
+    "level3": "header-craid_????-??-??_subset.pq",
 }
 
-pattern_out = {"level3": "insitu-surface-marine_2004-12.psv"}
+pattern_out = {"level3": "insitu-surface-marine_2004-12.pq"}
 
 manipulation = {
     "level1b": {
@@ -141,6 +141,32 @@ selection = {
         ("header", "report_type"),
         ("observations-slp", "value_significance"),
     ],
+}
+
+dtypes = {
+    "level3": {
+        "station_name": object,
+        "primary_station_id": object,
+        "report_id": object,
+        "observation_id": object,
+        "longitude": "float64",
+        "latitude": "float64",
+        "height_of_station_above_sea_level": "float64",
+        "observation_height_above_station_surface": "float64",
+        "z_coordinate": "float64",
+        "report_timestamp": "datetime64[ns, UTC]",
+        "report_meaning_of_time_stamp": "Int64",
+        "report_duration": "Int64",
+        "observed_variable": "Int64",
+        "units": "Int64",
+        "observation_value": "float64",
+        "quality_flag": "Int64",
+        "source_id": "Int64",
+        "data_policy_licence": "Int64",
+        "platform_type": "Int64",
+        "report_type": "Int64",
+        "value_significance": "Int64",
+    }
 }
 
 drops = {

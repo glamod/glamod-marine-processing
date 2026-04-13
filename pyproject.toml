@@ -75,7 +75,7 @@ docs = [
   "sphinx >=7.0.0",
   "sphinx-autodoc-typehints",
   "sphinx-copybutton",
-  "sphinx-book-theme >=1.0"
+  "sphinx-book-theme >=1.1.4"
 ]
 all = ["glamod_marine_processing[dev]", "glamod_marine_processing[docs]"]
 

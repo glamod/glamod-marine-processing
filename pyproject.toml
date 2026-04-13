@@ -59,7 +59,7 @@ dev = [
   "notebook",
   "pip >=24.2.0",
   "pre-commit >=3.7",
-  "pylint >=3.3.1",
+  "pylint >=4.0.5",
   "pytest>=8.3.4",
   "pytest-cov>=6.0.0",
   "pytest-env>=1.1.5",

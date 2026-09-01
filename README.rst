@@ -76,6 +76,8 @@ We want to thank `GNU parallel`_ for optionally using the ``glamod-marine-proces
 
 This package was created with Cookiecutter_ and the `audreyfeldroy/cookiecutter-pypackage`_ project template.
 
+.. hyperlinks
+
 .. _Apache License 2.0: https://opensource.org/license/apache-2-0/
 
 .. _audreyfeldroy/cookiecutter-pypackage: https://github.com/audreyfeldroy/cookiecutter-pypackage/

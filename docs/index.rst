@@ -57,7 +57,7 @@ concurrently to the overall scheme (see figure below).
 About
 -----
 
-:Version: |pypi|
+:Version: |tag| |release|
 
 :Citation: |zenodo|
 

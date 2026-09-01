@@ -58,7 +58,7 @@ If you would like to contribute code or documentation (which is greatly apprecia
 How to cite this library
 ------------------------
 
-If you wish to cite `glamod-marine-processing` in a research publication, we kindly ask that you refer to Zenodo: https://doi.org/10.5281/zenodo.17404810.
+If you wish to cite `glamod-marine-processing` in a research publication, we kindly ask that you refer to Zenodo: https://doi.org/10.5281/zenodo.18348998.
 
 License
 -------

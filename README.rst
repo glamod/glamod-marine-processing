@@ -116,10 +116,10 @@ This package was created with Cookiecutter_ and the `audreyfeldroy/cookiecutter-
 
 .. |fair-software| image:: https://img.shields.io/badge/fair--software.eu-%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8B%20%20%E2%97%8F%20%20%E2%97%8B-orange
    	    :target: https://fair-software.eu
-	      :alt: FAIR-software
+	    :alt: FAIR-software
 
-.. |fossa| image:: https://app.fossa.com/api/projects/git%2Bgithub.com%2Fglamod%2Fglamod-marine-processing.svg?type=shield
-        :target: https://app.fossa.com/projects/git%2Bgithub.com%2Fglamod%2Fglamod-marine-processing?ref=badge_shield
+.. |fossa| image:: https://app.fossa.com/api/projects/custom%2B41576%2Fgithub.com%2Fglamod%2Fglamod-marine-processing.svg?type=shield
+        :target: https://app.fossa.com/projects/custom%2B41576%2Fgithub.com%2Fglamod%2Fglamod-marine-processing?ref=badge_shield
         :alt: FOSSA
 
 .. |funding| image:: https://img.shields.io/badge/Powered%20by-Copernicus-blue.svg

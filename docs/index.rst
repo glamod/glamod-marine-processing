@@ -57,7 +57,7 @@ concurrently to the overall scheme (see figure below).
 About
 -----
 
-:Version: |tag| |release|
+:Version: |pypi|
 
 :Citation: |zenodo|
 
@@ -65,43 +65,16 @@ About
 
 |newline|
 
-|newline|
+.. raw:: html
 
-|tab| |tab| |tab| |tab| |tab| |tab| |tab| |tab| |tab| |tab| |tab| |tab| |tab| |tab| |tab| |tab| |tab| |tab| |logo_c3s| |logo_copernicus| |tab|
+   <div style="text-align: right;">
+       <img src="https://raw.githubusercontent.com/glamod/glamod-marine-processing/main/docs/figures/logo_DWD_RGB.png" width="200">
+       <img src="https://raw.githubusercontent.com/glamod/glamod-marine-processing/main/docs/figures/logo_c3s-392x154.png" width="150">
+       <img src="https://raw.githubusercontent.com/glamod/glamod-marine-processing/main/docs/figures/copernicus.png" width="150">
+       <img src="https://raw.githubusercontent.com/glamod/glamod-marine-processing/main/docs/figures/LOGO_2025_NOC.png" width="150">
+   </div>
 
-|tab| |tab| |tab| |tab| |tab| |tab| |tab| |tab| |tab| |tab| |tab| |tab| |tab| |tab| |logo_dwd| |logo_noc|
-
-.. |release| image:: https://img.shields.io/github/v/release/glamod/glamod-marine-processing.svg
-        :target: https://github.com/glamod/glamod-marine-processing/releases
-        :alt: Release
-
-.. |license| image:: https://img.shields.io/github/license/glamod/glamod-marine-processing.svg
-        :target: https://github.com/glamod/glamod-marine-processing/blob/main/LICENSE
-        :alt: License
-
-.. |tag| image:: https://img.shields.io/github/v/tag/glamod/glamod-marine-processing.svg
-        :target: https://github.com/glamod/glamod-marine-processing/tags
-        :alt: Tag
-
-.. |zenodo| image:: https://img.shields.io/badge/zenodo-package_or_version_not_found-red
-        :target: https://zenodo.org/glamod-marine-processing
- 	      :alt: DOI
-
-.. |logo_c3s| image:: figures/logo_c3s-392x154.png
-        :width: 25%
-        :target: https://climate.copernicus.eu/
-
-.. |logo_noc| image:: figures/LOGO_2025_NOC.png
-        :width: 25%
-        :target: ttps://noc.ac.uk/
-
-.. |logo_dwd| image:: figures/logo_DWD_RGB.png
-        :width: 35%
-        :target: https://www.dwd.de/
-
-.. |logo_copernicus| image:: figures/copernicus.png
-        :width: 25%
-        :target: https://www.copernicus.eu/en
+.. include:: ../README.rst
 
 .. |newline| raw:: html
 

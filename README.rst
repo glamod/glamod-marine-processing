@@ -157,4 +157,3 @@ This package was created with Cookiecutter_ and the `audreyfeldroy/cookiecutter-
 .. |zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.18348998.svg
   	    :target: https://doi.org/10.5281/zenodo.18348998
  	      :alt: DOI
-

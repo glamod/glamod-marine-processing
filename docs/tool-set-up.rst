@@ -51,3 +51,5 @@ If you want to work on another marine, please create a new configuration file wi
 
 Other directories that will be needed for processing the data will be created
 automatically while calling the software the first time.
+
+.. _pip: https://pip.pypa.io/en/latest/

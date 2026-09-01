@@ -75,6 +75,7 @@ About
    </div>
 
 .. include:: ../README.rst
+    :start-after: hyperlinks
 
 .. |newline| raw:: html
 

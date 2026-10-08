@@ -58,7 +58,7 @@ If you would like to contribute code or documentation (which is greatly apprecia
 How to cite this library
 ------------------------
 
-If you wish to cite `glamod-marine-processing` in a research publication, we kindly ask that you refer to Zenodo: https://doi.org/10.5281/zenodo.17404810.
+If you wish to cite `glamod-marine-processing` in a research publication, we kindly ask that you refer to Zenodo: https://doi.org/10.5281/zenodo.18348998.
 
 License
 -------
@@ -75,6 +75,8 @@ Furthermore, acknowledgments go to National Oceanography Centre (NOC_).
 We want to thank `GNU parallel`_ for optionally using the ``glamod-marine-processing`` suite cases in parallel.
 
 This package was created with Cookiecutter_ and the `audreyfeldroy/cookiecutter-pypackage`_ project template.
+
+.. hyperlinks
 
 .. _Apache License 2.0: https://opensource.org/license/apache-2-0/
 
@@ -116,10 +118,10 @@ This package was created with Cookiecutter_ and the `audreyfeldroy/cookiecutter-
 
 .. |fair-software| image:: https://img.shields.io/badge/fair--software.eu-%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8B%20%20%E2%97%8F%20%20%E2%97%8B-orange
    	    :target: https://fair-software.eu
-	      :alt: FAIR-software
+	    :alt: FAIR-software
 
-.. |fossa| image:: https://app.fossa.com/api/projects/git%2Bgithub.com%2Fglamod%2Fglamod-marine-processing.svg?type=shield
-        :target: https://app.fossa.com/projects/git%2Bgithub.com%2Fglamod%2Fglamod-marine-processing?ref=badge_shield
+.. |fossa| image:: https://app.fossa.com/api/projects/custom%2B41576%2Fgithub.com%2Fglamod%2Fglamod-marine-processing.svg?type=shield
+        :target: https://app.fossa.com/projects/custom%2B41576%2Fgithub.com%2Fglamod%2Fglamod-marine-processing?ref=badge_shield
         :alt: FOSSA
 
 .. |funding| image:: https://img.shields.io/badge/Powered%20by-Copernicus-blue.svg
@@ -155,9 +157,5 @@ This package was created with Cookiecutter_ and the `audreyfeldroy/cookiecutter-
         :alt: Tag
 
 .. |zenodo| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.18348998.svg
-  	:target: https://doi.org/10.5281/zenodo.18348998
- 	:alt: DOI
-
-.. |noc| image:: https://img.shields.io/badge/Thanks%20to-NOC-blue.svg
-        :target: https://noc.ac.uk/
-        :alt: NOC
+  	    :target: https://doi.org/10.5281/zenodo.18348998
+ 	      :alt: DOI

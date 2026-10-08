@@ -1,0 +1,11 @@
+{
+  "process_list_file": "source_deck_list_post.txt",
+  "release_periods_file": "source_deck_periods.json",
+  "job_memo_mb": 4000,
+  "job_time_hr": "00",
+  "job_time_min": "59",
+  "qc_first_date_avail": "2015-01",
+  "qc_last_date_avail": "2024-08",
+  "history_explain": "Position, tracking and parameter QC flags added",
+  "no_qc_suite": true
+}

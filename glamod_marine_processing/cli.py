@@ -266,7 +266,7 @@ class Options:
             help="Name of the destination data level.",
         )
         self.release = click.option(
-            "-r", "--release", default="release_8.0", help="Name of the data release."
+            "-r", "--release", default="release_9.0", help="Name of the data release."
         )
         self.release_source = click.option(
             "-rs",

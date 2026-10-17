@@ -32,7 +32,24 @@ def pre_proc_cli(
         data_directory=data_directory,
     ).initialize()
     p = SimpleNamespace(**config["paths"])
-    input_dir = os.path.join(p.data_directory, "datasets", dataset, "ORIGINAL")
+    if "ICOADS" in dataset:
+        input_dir = os.path.join(p.data_directory, "datasets", dataset, "ORIGINAL")
+    elif "C-MEMS" in dataset:
+        input_dir = os.path.join(
+            p.data_directory,
+            "datasets",
+            dataset,
+            "ORIGINAL",
+            "INSITU_GLO_PHYBGCWAV_DISCRETE_MYNRT_013_030",
+            "cmems_obs-ins_glo_phybgcwav_mynrt_na_irr_202311",
+            "history",
+            "DB",
+        )
+    else:
+        raise ValueError(
+            f"preprocessing is only implemented for 'ICOADS' and 'C-MEMS': {dataset}"
+        )
+
     output_dir = os.path.join(p.data_directory, "datasets", dataset, "level0")
     mkdir(output_dir)
 

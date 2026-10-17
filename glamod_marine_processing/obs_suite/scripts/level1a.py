@@ -64,8 +64,7 @@ from importlib import reload
 import numpy as np
 import pandas as pd
 from _utilities import FFS, chunksizes, date_handler, save_quicklook, script_setup
-from cdm_reader_mapper import read_mdf
-from cdm_reader_mapper.cdm_mapper import properties
+from cdm_reader_mapper import properties, read_mdf
 from cdm_reader_mapper.common import inspect
 
 import glamod_marine_processing.obs_suite.modules.blacklisting as blacklist_funcs
@@ -299,7 +298,6 @@ if params.generic_ids:
             )
         else:
             gnrc_dict["header"] = gnrc_mask
-
 
 # 3. Map to common data model and output files
 if process:

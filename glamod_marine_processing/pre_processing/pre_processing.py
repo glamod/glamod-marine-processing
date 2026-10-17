@@ -6,6 +6,9 @@ import glob
 import json
 import os
 from pathlib import Path
+from shutil import copyfile
+
+import xarray as xr
 
 # number of lines to store in each cache
 maxLines = 1000
@@ -25,7 +28,11 @@ parse_dict = {
 
 # default input file source pattern
 _dataset = "ICOADS_R3.0.2T"
-_source_pattern = "IMMA1_R3.0.*"
+_source_pattern = {
+    "ICOADS_R3.0.2T": "IMMA1_R3.0.*",
+    "ICOADS_R3.0.0T": "IMMA1_R3.0.*",
+    "C-MEMS_2.0": "GL_TS_DB_*",
+}
 
 
 def get_cell(lon, lat, xmin, xmax, xstep, ymin, ystep):
@@ -178,10 +185,10 @@ def pre_processing(
         If True, overwrite already existing files.
     """
     # get list of files to process
-    if source_pattern is None:
-        source_pattern = _source_pattern
     if dataset is None:
         dataset = _dataset
+    if source_pattern is None:
+        source_pattern = _source_pattern[dataset]
     infiles = sorted(glob.glob(f"{idir}/{source_pattern}"))
     # get number of files
     nfiles = len(infiles)
@@ -192,27 +199,53 @@ def pre_processing(
     for infile in infiles:
         # get current file to process
         print(f"Pre-Processing {infile}")
-        fh = open(infile, encoding="cp1252")
 
-        for line in fh.readlines():
-            # get source Id and deck
-            dck = int(parse_line(line, "dck"))
-            sid = int(parse_line(line, "sid"))
-            year = int(parse_line(line, "year"))
-            month = int(parse_line(line, "month"))
-            # set tag for data
-            tag = f"{sid:03d}-{dck:03d}"
-            # Initialise deck or update output path
-            if tag not in decks:
-                decks[tag] = deck_store(dataset, tag, year, month, odir)
-            else:
-                decks[tag].set_path(dataset, tag, year, month, odir)
-            # add ICOADS record to deck
-            decks[tag].add_line(line)
-        fh.close()
+        if "ICOADS" in dataset:
+            fh = open(infile, encoding="cp1252")
+
+            for line in fh.readlines():
+                # get source Id and deck
+                dck = int(parse_line(line, "dck"))
+                sid = int(parse_line(line, "sid"))
+                year = int(parse_line(line, "year"))
+                month = int(parse_line(line, "month"))
+                # set tag for data
+                tag = f"{sid:03d}-{dck:03d}"
+                # Initialise deck or update output path
+                if tag not in decks:
+                    decks[tag] = deck_store(dataset, tag, year, month, odir)
+                else:
+                    decks[tag].set_path(dataset, tag, year, month, odir)
+                # add ICOADS record to deck
+                decks[tag].add_line(line)
+            fh.close()
+
+        elif "C-MEMS" in dataset:
+            if ".nc" not in infile:
+                continue
+
+            ds = xr.open_dataset(infile)
+            transmitter = ds.attrs.get("transmitter_system", None)
+            ds.close()
+
+            if transmitter != "IRIDIUM":
+                print("Skip: not a IRIDIUM drifter.")
+                continue
+
+            ofile_name = infile.split("/")[-1]
+            ofile_dir = os.path.join(odir, ofile_name.split(".")[0])
+            if not os.path.exists(ofile_dir):
+                os.mkdir(ofile_dir)
+
+            ofile = os.path.join(ofile_dir, ofile_name)
+            copyfile(infile, ofile)
+            print(f"Copy IRIDIUM drifter to: {ofile}")
+        else:
+            raise ValueError(f"dataset: {dataset} must contain 'ICOADS' or 'C-MEMS'.")
 
     # now make sure all files are closed and write summaries to file
-    for dck in decks:
-        with open(f"{dck}.json", "w") as ofh:
-            json.dump(decks[dck].summary, ofh)
-        decks[dck].close()
+    if decks:
+        for dck in decks:
+            with open(f"{dck}.json", "w") as ofh:
+                json.dump(decks[dck].summary, ofh)
+            decks[dck].close()
